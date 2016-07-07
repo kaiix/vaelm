@@ -13,6 +13,7 @@ import numpy as np
 import tensorflow as tf
 
 from vocab import Vocab
+from nnutils import same_shape
 
 flags = tf.flags
 
@@ -21,8 +22,6 @@ flags.DEFINE_float('max_gradient_norm', 5.0, 'Clip gradients to this norm.')
 flags.DEFINE_integer('batch_size', 25, 'Batch size to use during training.')
 flags.DEFINE_integer('embedding_size', 300, 'Size of word embedding.')
 flags.DEFINE_integer('num_units', 150, 'Size of each LSTM layer.')
-flags.DEFINE_integer('num_layers', 1, 'Number of layers in the model.')
-flags.DEFINE_integer('num_classes', 5, 'Number of similarity rating classes.')
 flags.DEFINE_string('data_dir', './data', 'Data directory')
 flags.DEFINE_string('train_dir', './checkpoints', 'Training directory.')
 flags.DEFINE_string('log_dir', './logs', 'Log directory.')
@@ -121,6 +120,8 @@ class VariationalAutoEncoder(object):
                                   for i in encoder_inputs]
             emb_decoder_inputs = [tf.nn.embedding_lookup(self.embedding, i)
                                   for i in decoder_inputs]
+            assert len(emb_encoder_inputs) == len(emb_decoder_inputs) - 1
+            assert len(targets) == len(weights)
 
             l2_reg = tf.contrib.layers.l2_regularizer(self.reg_scale)
             with tf.variable_scope('autoencoder', regularizer=l2_reg):
@@ -142,7 +143,14 @@ class VariationalAutoEncoder(object):
                         loop_function=loop_function,
                         scope='decoder')
 
-            loss = tf.nn.seq2seq.sequence_loss(outputs, targets, weights)
+            assert same_shape(outputs[0], (None, num_units))
+            proj_w = tf.get_variable('proj_w', [num_units, vocab_size])
+            proj_b = tf.get_variable('proj_b', [vocab_size])
+            logits = [tf.nn.xw_plus_b(output, proj_w, proj_b)
+                      for output in outputs]
+            assert same_shape(logits[0], (None, vocab_size))
+            loss = tf.nn.seq2seq.sequence_loss(logits, targets, weights)
+
             regularizers = \
                 tf.add_n(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
             loss += regularizers
