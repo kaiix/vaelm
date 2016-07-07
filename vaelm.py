@@ -25,6 +25,7 @@ flags.DEFINE_integer('num_layers', 1, 'Number of layers in the model.')
 flags.DEFINE_integer('num_classes', 5, 'Number of similarity rating classes.')
 flags.DEFINE_string('data_dir', './data', 'Data directory')
 flags.DEFINE_string('train_dir', './checkpoints', 'Training directory.')
+flags.DEFINE_string('log_dir', './logs', 'Log directory.')
 flags.DEFINE_integer('max_train_data_size', 0,
                      'Limit on the size of training data (0: no limit).')
 flags.DEFINE_integer('steps_per_checkpoint', 200,
@@ -279,6 +280,8 @@ def train():
     train_buckets_scale = [sum(train_bucket_sizes[:i + 1]) / train_total_size
                            for i in xrange(len(train_bucket_sizes))]
 
+    metadata = Metadata(FLAGS.log_dir)
+
     with tf.Session() as sess:
         with tf.variable_scope('vaelm', reuse=None):
             model = create_model(sess, vocab, emb_vecs, False)
@@ -301,12 +304,21 @@ def train():
             loss += step_loss / FLAGS.steps_per_checkpoint
             current_step += 1
 
+            global_step = model.global_step.eval()
+            metadata.add(global_step, 'train_loss', step_loss)
+
+            if current_step % 10 == 0:
+                dev_loss = sampled_loss(sess, model, dev_set)
+                metadata.add(global_step, 'dev_loss', dev_loss)
+
+            if current_step % 1000 == 0:
+                print('  saving metadata ...')
+                metadata.save()
+
             if current_step % FLAGS.steps_per_checkpoint == 0:
                 print('global step {} step-time {:.2f} loss {:f}'
                       .format(model.global_step.eval(), step_time, loss))
                 step_time, loss = 0.0, 0.0
-
-                sampled_loss(sess, model, dev_set)
 
                 if FLAGS.save:
                     print('  saving checkpoint ...')
@@ -347,6 +359,32 @@ def print_data(batch_encoder_inputs, batch_decoder_inputs,
             map(vocab.token, dec[1:]), w))))
 
 
+class Metadata(object):
+    def __init__(self, save_dir):
+        assert os.path.exists(save_dir)
+        self._save_dir = save_dir
+        self._data = {}
+        self._global_step = -1
+
+    def add(self, global_step, key, value):
+        if key not in self._data:
+            self._data[key] = []
+        self._data[key].append((global_step, value))
+        self._global_step = max(global_step, self._global_step)
+
+    def save(self):
+        assert self._global_step > 0
+        import cPickle as pickle
+        filename = os.path.join(self._save_dir,
+                                'metadata.{}.pkl'.format(self._global_step))
+        with open(filename, 'wb') as f:
+            pickle.dump(self._data, f)
+
+            # clean
+            for k in self._data:
+                self._data[k] = []
+
+
 def sampled_loss(session, model, dev_set):
     dev_loss = 0.0
     nbuckets = 0
@@ -365,6 +403,7 @@ def sampled_loss(session, model, dev_set):
         dev_loss += eval_loss
     dev_loss /= nbuckets
     print('  average sampled dev loss: {:f}'.format(dev_loss))
+    return dev_loss
 
 
 def evaluate():
@@ -386,5 +425,11 @@ def evaluate():
             print('similary evaluation result ([1-5]): {:.2f}'.format(output))
 
 
-if __name__ == '__main__':
+def main(_):
+    if not tf.gfile.Exists(FLAGS.log_dir):
+        tf.gfile.MakeDirs(FLAGS.log_dir)
     train()
+
+
+if __name__ == '__main__':
+    tf.app.run()
