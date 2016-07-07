@@ -18,8 +18,7 @@ flags = tf.flags
 
 flags.DEFINE_float('learning_rate', 0.01, 'Learning rate.')
 flags.DEFINE_float('max_gradient_norm', 5.0, 'Clip gradients to this norm.')
-#flags.DEFINE_integer('batch_size', 25, 'Batch size to use during training.')
-flags.DEFINE_integer('batch_size', 3, 'Batch size to use during training.')
+flags.DEFINE_integer('batch_size', 25, 'Batch size to use during training.')
 flags.DEFINE_integer('embedding_size', 300, 'Size of word embedding.')
 flags.DEFINE_integer('num_units', 150, 'Size of each LSTM layer.')
 flags.DEFINE_integer('num_layers', 1, 'Number of layers in the model.')
@@ -283,7 +282,7 @@ def train():
                            for i in xrange(len(train_bucket_sizes))]
 
     with tf.Session() as sess:
-        with tf.variable_scope('model', reuse=None):
+        with tf.variable_scope('vaelm', reuse=None):
             model = create_model(sess, vocab, emb_vecs, False)
 
         step_time, loss = 0.0, 0.0
