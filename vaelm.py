@@ -193,9 +193,7 @@ class VariationalAutoEncoder(object):
             [self.batch_size], dtype=np.float32)
 
         if forward_only:
-            assert False, 'fix output feed'
-            loss, output = session.run(
-                [self.losses[bucket_id], self.outputs[bucket_id]], input_feed)
+            loss = session.run(self.losses[bucket_id], input_feed)
         else:
             _, loss = session.run([
                 self.updates[bucket_id],
@@ -362,7 +360,7 @@ def sampled_loss(session, model, dev_set):
         encoder_inputs, decoder_inputs, target_weights = model.get_batch(
             dev_set, bucket_id)
         eval_loss = model.step(session, encoder_inputs, decoder_inputs,
-                               target_weights, bucket_id, False)
+                               target_weights, bucket_id, True)
         print('  eval: bucket {} loss {:f}'.format(bucket_id, eval_loss))
         dev_loss += eval_loss
     dev_loss /= nbuckets
