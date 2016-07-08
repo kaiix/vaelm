@@ -1,2 +1,4 @@
 data/
 scripts/
+logs/
+logs.*/
