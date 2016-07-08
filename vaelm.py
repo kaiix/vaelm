@@ -367,6 +367,9 @@ def train():
                                      checkpoint_path,
                                      global_step=model.global_step)
 
+            if current_step % 10000 == 0:
+                break
+
 
 def print_data(batch_encoder_inputs, batch_decoder_inputs,
                batch_target_weights, vocab):
