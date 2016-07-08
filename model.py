@@ -61,7 +61,7 @@ class VariationalAutoEncoder(object):
 
         self.embedding = tf.get_variable('embedding',
                                          [vocab_size, embedding_size],
-                                         trainable=False)
+                                         trainable=True)
 
         lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(num_units,
                                                  state_is_tuple=True)
