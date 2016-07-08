@@ -129,24 +129,22 @@ class VariationalAutoEncoder(object):
                                      emb_encoder_inputs,
                                      dtype=tf.float32,
                                      scope='encoder')
-                if not forward_only:
-                    outputs, _ = tf.nn.seq2seq.rnn_decoder(emb_decoder_inputs,
-                                                           state,
-                                                           lstm_cell,
-                                                           scope='decoder')
-                else:
-                    loop_function = _extract_argmax_and_embed(self.embedding)
-                    outputs, _ = tf.nn.seq2seq.rnn_decoder(
-                        emb_decoder_inputs,
-                        state,
-                        lstm_cell,
-                        loop_function=loop_function,
-                        scope='decoder')
 
-            with tf.variable_scope('projection', regularizer=l2_reg):
-                assert same_shape(outputs[0], (None, num_units))
                 proj_w = tf.get_variable('proj_w', [num_units, vocab_size])
                 proj_b = tf.get_variable('proj_b', [vocab_size])
+                if forward_only:
+                    loop_function = _extract_argmax_and_embed(self.embedding,
+                                                              (proj_w, proj_b))
+                else:
+                    loop_function = None
+
+                outputs, _ = tf.nn.seq2seq.rnn_decoder(
+                    emb_decoder_inputs,
+                    state,
+                    lstm_cell,
+                    loop_function=loop_function,
+                    scope='decoder')
+                assert same_shape(outputs[0], (None, num_units))
 
                 logits = [tf.nn.xw_plus_b(output, proj_w, proj_b)
                           for output in outputs]
@@ -156,7 +154,7 @@ class VariationalAutoEncoder(object):
             regularizers = \
                 tf.add_n(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
             loss += regularizers
-            return outputs, loss
+            return logits, loss
 
         self.losses = []
         self.outputs = []
@@ -203,14 +201,21 @@ class VariationalAutoEncoder(object):
         input_feed[self.decoder_inputs[decoder_size].name] = np.zeros(
             [self.batch_size], dtype=np.float32)
 
-        if forward_only:
-            loss = session.run(self.losses[bucket_id], input_feed)
-        else:
-            _, loss = session.run([
+        if not forward_only:
+            output_feed = [
                 self.updates[bucket_id],
                 self.losses[bucket_id],
-            ], input_feed)
-        return loss
+            ]
+        else:
+            output_feed = [self.losses[bucket_id]]
+            for l in xrange(decoder_size):
+                output_feed.append(self.outputs[bucket_id][l])
+
+        outputs = session.run(output_feed, input_feed)
+        if not forward_only:
+            return outputs[1], None  # loss
+        else:
+            return outputs[0], outputs[1:]  # loss, logits
 
     def get_batch(self, data, bucket_id):
         seq_length = self.buckets[bucket_id]
@@ -252,12 +257,34 @@ class VariationalAutoEncoder(object):
 
         return batch_encoder_inputs, batch_decoder_inputs, batch_weights
 
+    def predict(self, session, sentence):
+        source_ids = map(self.vocab.index, sentence.split())
+        assert len(source_ids) < self.buckets[-1]
+        eval_set = [[] for _ in self.buckets]
+        for bucket_id, bucket_size in enumerate(self.buckets):
+            if len(source_ids) < bucket_size:
+                eval_set[bucket_id].append(source_ids)
+                break
+        encoder_inputs, decoder_inputs, target_weights = self.get_batch(
+            eval_set, bucket_id)
+        # print_data(encoder_inputs, decoder_inputs, target_weights, self.vocab)
+        _, outputs = self.step(session, encoder_inputs, decoder_inputs,
+                               target_weights, bucket_id, True)
+        assert len(outputs) == self.buckets[bucket_id] + 1
+        assert same_shape(outputs[0], (self.batch_size, self.vocab.size))
+        decoder_outputs = []
+        for b in xrange(self.batch_size):
+            decoder_outputs.append(' '.join([
+                self.vocab.token(np.argmax(outputs[l][b]))
+                for l in xrange(self.buckets[bucket_id] + 1)
+            ]))
+        return decoder_outputs
 
-def create_model(sess, vocab, embedding, forward_only=False):
-    model = VariationalAutoEncoder(FLAGS.learning_rate, FLAGS.batch_size,
-                                   FLAGS.num_units, FLAGS.embedding_size,
-                                   FLAGS.max_gradient_norm, _buckets, vocab,
-                                   forward_only)
+
+def create_model(sess, batch_size, vocab, embedding, forward_only=False):
+    model = VariationalAutoEncoder(
+        FLAGS.learning_rate, batch_size, FLAGS.num_units, FLAGS.embedding_size,
+        FLAGS.max_gradient_norm, _buckets, vocab, forward_only)
     ckpt = tf.train.get_checkpoint_state(FLAGS.train_dir)
     if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path):
         print('Reading model parameters from {}'.format(
@@ -294,7 +321,8 @@ def train():
 
     with tf.Session() as sess:
         with tf.variable_scope('vaelm', reuse=None):
-            model = create_model(sess, vocab, emb_vecs, False)
+            model = create_model(sess, FLAGS.batch_size, vocab, emb_vecs,
+                                 False)
 
         step_time, loss = 0.0, 0.0
         current_step = 0
@@ -307,8 +335,8 @@ def train():
             encoder_inputs, decoder_inputs, target_weights = model.get_batch(
                 train_set, bucket_id)
             # print_data(encoder_inputs, decoder_inputs, target_weights, vocab)
-            step_loss = model.step(sess, encoder_inputs, decoder_inputs,
-                                   target_weights, bucket_id, False)
+            step_loss, _ = model.step(sess, encoder_inputs, decoder_inputs,
+                                      target_weights, bucket_id, False)
             step_time += \
                 (time.time() - start_time) / FLAGS.steps_per_checkpoint
             loss += step_loss / FLAGS.steps_per_checkpoint
@@ -407,8 +435,8 @@ def sampled_loss(session, model, dev_set):
 
         encoder_inputs, decoder_inputs, target_weights = model.get_batch(
             dev_set, bucket_id)
-        eval_loss = model.step(session, encoder_inputs, decoder_inputs,
-                               target_weights, bucket_id, True)
+        eval_loss, _ = model.step(session, encoder_inputs, decoder_inputs,
+                                  target_weights, bucket_id, True)
         print('  eval: bucket {} loss {:f}'.format(bucket_id, eval_loss))
         dev_loss += eval_loss
     dev_loss /= nbuckets
@@ -423,16 +451,13 @@ def evaluate():
     emb_vecs = np.load(data_dir + 'sick.300d.npy')
 
     with tf.Session() as sess:
-        with tf.variable_scope('model', reuse=None):
-            model = create_model(sess, vocab, emb_vecs, True)
+        with tf.variable_scope('vaelm', reuse=None):
+            model = create_model(sess, 1, vocab, emb_vecs, True)
 
         while True:
-            print('input first sentence')
             source = raw_input('> ')
-            print('input second sentence')
-            target = raw_input('> ')
-            output = model.predict(sess, source, target)
-            print('similary evaluation result ([1-5]): {:.2f}'.format(output))
+            output = model.predict(sess, source)
+            print('predict result: {}'.format(output))
 
 
 def main(_):
