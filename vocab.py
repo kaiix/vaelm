@@ -117,6 +117,10 @@ class Vocab(object):
 
 
 if __name__ == '__main__':
-    data_dir = 'data/sick/'
+    import sys
+    data_dir = sys.argv[1] if len(sys.argv) > 1 else 'data/sick/'
     vocab = Vocab(data_dir + 'vocab-cased.txt')
-    print(vocab.pad_index, vocab.unk_index, vocab.start_index, vocab.end_index)
+    print('pad:', vocab.pad_index, vocab.pad_token)
+    print('unk:', vocab.unk_index, vocab.unk_token)
+    print('start:', vocab.start_index, vocab.start_token)
+    print('end:', vocab.end_index, vocab.end_token)
