@@ -31,6 +31,8 @@ def merge_metadata(data_dir):
                 else:
                     merged_data[k] = v
             print('merged {}'.format(filename))
+    for k in merged_data:
+        merged_data[k] = sorted(merged_data[k], key=lambda v: v[0])
     return merged_data
 
 
@@ -41,14 +43,10 @@ def main(data_dir):
     plt.plot(steps, losses, label='train loss')
     dev_loss = data['dev_loss']
     steps, losses = zip(*dev_loss)
-    plt.plot(steps,
-             losses,
-             marker='o',
-             linestyle='--',
-             color='r',
-             label='dev loss')
+    plt.plot(steps, losses, color='r', label='dev loss')
     plt.xlabel('step')
-    plt.ylabel('train_loss')
+    plt.ylabel('loss')
+    plt.legend(loc='upper right')
     plt.show()
 
 
