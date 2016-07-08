@@ -19,9 +19,9 @@ flags = tf.flags
 flags.DEFINE_float('learning_rate', 0.01, 'Learning rate.')
 flags.DEFINE_float('max_gradient_norm', 5.0, 'Clip gradients to this norm.')
 flags.DEFINE_integer('batch_size', 25, 'Batch size to use during training.')
-flags.DEFINE_integer('embedding_size', 300, 'Size of word embedding.')
 flags.DEFINE_integer('num_units', 150, 'Size of each LSTM layer.')
-flags.DEFINE_string('data_dir', './data', 'Data directory')
+flags.DEFINE_integer('embedding_size', 300, 'Size of word embedding.')
+flags.DEFINE_string('data_dir', './data/sick', 'Data directory')
 flags.DEFINE_string('train_dir', './checkpoints', 'Training directory.')
 flags.DEFINE_string('log_dir', './logs', 'Log directory.')
 flags.DEFINE_integer('max_train_data_size', 0,
@@ -30,6 +30,9 @@ flags.DEFINE_integer('steps_per_checkpoint', 200,
                      'How many training steps to do per checkpoint.')
 flags.DEFINE_boolean('save', False, 'Save checkpoint files.')
 flags.DEFINE_boolean('eval', False, 'Run a evaluation process.')
+flags.DEFINE_boolean('use_embedding', False, 'Use pre-trained embedding')
+flags.DEFINE_string('embedding', './data/sick/sick.300d.npy',
+                    'Pre-trained word embeddings')
 
 FLAGS = flags.FLAGS
 
@@ -61,7 +64,7 @@ def read_data(root_dir, vocab, max_size=None):
     return data_set
 
 
-def create_model(sess, vocab, embedding, forward_only=False):
+def create_model(sess, vocab, forward_only=False):
     model = VariationalAutoEncoder(FLAGS.learning_rate, FLAGS.batch_size,
                                    FLAGS.num_units, FLAGS.embedding_size,
                                    FLAGS.max_gradient_norm, _buckets, vocab,
@@ -74,27 +77,22 @@ def create_model(sess, vocab, embedding, forward_only=False):
     else:
         print("Created model with fresh parameters.")
         sess.run(tf.initialize_all_variables())
-    if embedding is not None:
-        print('Using pre-trained word embedding')
-        sess.run(model.embedding.assign(embedding))
     return model
 
 
 def train():
-    data_dir = 'data/sick/'
-    vocab = Vocab(data_dir + 'vocab-cased.txt')
-    print('Loading word embeddings')
-    # use only vectors in vocabulary (not necessary, but gives faster training)
-    emb_vecs = np.load(data_dir + 'sick.300d.npy')
-
+    vocab = Vocab(os.path.join(FLAGS.data_dir, 'vocab-cased.txt'))
     print('Reading development and training data (limit: {}).'.format(
         FLAGS.max_train_data_size))
-    dev_set = read_data(data_dir + 'dev/', vocab, FLAGS.max_train_data_size)
-    train_set = read_data(data_dir + 'train/', vocab,
-                          FLAGS.max_train_data_size)
+
+    dev_set = read_data(
+        os.path.join(FLAGS.data_dir, 'dev/'), vocab, FLAGS.max_train_data_size)
+    train_set = read_data(
+        os.path.join(FLAGS.data_dir, 'train/'), vocab,
+        FLAGS.max_train_data_size)
+
     train_bucket_sizes = [len(train_set[b]) for b in xrange(len(_buckets))]
     train_total_size = float(sum(train_bucket_sizes))
-
     train_buckets_scale = [sum(train_bucket_sizes[:i + 1]) / train_total_size
                            for i in xrange(len(train_bucket_sizes))]
 
@@ -102,7 +100,12 @@ def train():
 
     with tf.Session() as sess:
         with tf.variable_scope('vaelm', reuse=None):
-            model = create_model(sess, vocab, emb_vecs, False)
+            model = create_model(sess, vocab, False)
+            if FLAGS.use_embedding:
+                print('Loading word embeddings')
+                emb_vecs = np.load(FLAGS.embedding)
+                print('Using pre-trained word embedding')
+                sess.run(model.embedding.assign(emb_vecs))
 
         step_time, loss = 0.0, 0.0
         current_step = 0
@@ -228,14 +231,11 @@ def sampled_loss(session, model, dev_set):
 
 
 def evaluate():
-    data_dir = 'data/sick/'
-    vocab = Vocab(data_dir + 'vocab-cased.txt')
-    print('Loading word embeddings')
-    emb_vecs = np.load(data_dir + 'sick.300d.npy')
+    vocab = Vocab(os.path.join(FLAGS.data_dir, 'vocab-cased.txt'))
 
     with tf.Session() as sess:
         with tf.variable_scope('vaelm', reuse=None):
-            model = create_model(sess, vocab, emb_vecs, True)
+            model = create_model(sess, vocab, True)
             model.batch_size = 1
 
         while True:
