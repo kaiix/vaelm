@@ -86,7 +86,7 @@ class VariationalAutoEncoder(object):
         self.learning_rate = learning_rate
         self.vocab = vocab
         vocab_size = vocab.size
-        self.reg_scale = 1e-4
+        self.reg_scale = 1e-6
 
         self.encoder_inputs = []
         self.decoder_inputs = []
@@ -143,14 +143,16 @@ class VariationalAutoEncoder(object):
                         loop_function=loop_function,
                         scope='decoder')
 
-            assert same_shape(outputs[0], (None, num_units))
-            proj_w = tf.get_variable('proj_w', [num_units, vocab_size])
-            proj_b = tf.get_variable('proj_b', [vocab_size])
-            logits = [tf.nn.xw_plus_b(output, proj_w, proj_b)
-                      for output in outputs]
-            assert same_shape(logits[0], (None, vocab_size))
-            loss = tf.nn.seq2seq.sequence_loss(logits, targets, weights)
+            with tf.variable_scope('projection', regularizer=l2_reg):
+                assert same_shape(outputs[0], (None, num_units))
+                proj_w = tf.get_variable('proj_w', [num_units, vocab_size])
+                proj_b = tf.get_variable('proj_b', [vocab_size])
 
+                logits = [tf.nn.xw_plus_b(output, proj_w, proj_b)
+                          for output in outputs]
+                assert same_shape(logits[0], (None, vocab_size))
+
+            loss = tf.nn.seq2seq.sequence_loss(logits, targets, weights)
             regularizers = \
                 tf.add_n(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
             loss += regularizers
