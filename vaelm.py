@@ -281,10 +281,11 @@ class VariationalAutoEncoder(object):
         return decoder_outputs
 
 
-def create_model(sess, batch_size, vocab, embedding, forward_only=False):
-    model = VariationalAutoEncoder(
-        FLAGS.learning_rate, batch_size, FLAGS.num_units, FLAGS.embedding_size,
-        FLAGS.max_gradient_norm, _buckets, vocab, forward_only)
+def create_model(sess, vocab, embedding, forward_only=False):
+    model = VariationalAutoEncoder(FLAGS.learning_rate, FLAGS.batch_size,
+                                   FLAGS.num_units, FLAGS.embedding_size,
+                                   FLAGS.max_gradient_norm, _buckets, vocab,
+                                   forward_only)
     ckpt = tf.train.get_checkpoint_state(FLAGS.train_dir)
     if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path):
         print('Reading model parameters from {}'.format(
@@ -321,8 +322,7 @@ def train():
 
     with tf.Session() as sess:
         with tf.variable_scope('vaelm', reuse=None):
-            model = create_model(sess, FLAGS.batch_size, vocab, emb_vecs,
-                                 False)
+            model = create_model(sess, vocab, emb_vecs, False)
 
         step_time, loss = 0.0, 0.0
         current_step = 0
@@ -455,7 +455,8 @@ def evaluate():
 
     with tf.Session() as sess:
         with tf.variable_scope('vaelm', reuse=None):
-            model = create_model(sess, 1, vocab, emb_vecs, True)
+            model = create_model(sess, vocab, emb_vecs, True)
+            model.batch_size = 1
 
         while True:
             source = raw_input('> ')
