@@ -28,6 +28,30 @@ def _extract_argmax_and_embed(embedding,
     return loop_function
 
 
+def _revert_inputs(batch_inputs, vocab):
+    batch_size = batch_inputs[0].shape[0]
+    inputs = [[] for _ in xrange(batch_size)]
+    for length_idx in xrange(len(batch_inputs)):
+        for batch_idx in xrange(len(batch_inputs[length_idx])):
+            inputs[batch_idx].append(batch_inputs[length_idx][batch_idx])
+    return inputs
+
+
+def print_data(batch_encoder_inputs, batch_decoder_inputs,
+               batch_target_weights, vocab):
+    assert len(batch_encoder_inputs) == len(batch_decoder_inputs) - 1
+    assert len(batch_target_weights) == len(batch_decoder_inputs)
+    encoder_inputs = _revert_inputs(batch_encoder_inputs, vocab)
+    decoder_inputs = _revert_inputs(batch_decoder_inputs, vocab)
+    target_weights = _revert_inputs(batch_target_weights, vocab)
+
+    for enc, dec, w in zip(encoder_inputs, decoder_inputs, target_weights):
+        print('encoder input > "{}"'.format(map(vocab.token, enc)))
+        print('decoder input > "{}"'.format(map(vocab.token, dec)))
+        print('target weights > "{}"'.format(list(zip(
+            map(vocab.token, dec[1:]), w))))
+
+
 class VariationalAutoEncoder(object):
     def __init__(self, learning_rate, batch_size, num_units, embedding_size,
                  max_gradient_norm, buckets, vocab, forward_only):
