@@ -19,7 +19,7 @@ flags = tf.flags
 
 flags.DEFINE_float('learning_rate', 0.003, 'Learning rate.')
 flags.DEFINE_float('max_gradient_norm', 5.0, 'Clip gradients to this norm.')
-flags.DEFINE_integer('batch_size', 20, 'Batch size to use during training.')
+flags.DEFINE_integer('batch_size', 50, 'Batch size to use during training.')
 flags.DEFINE_integer('num_units', 300, 'Size of each LSTM layer.')
 flags.DEFINE_integer('embedding_size', 300, 'Size of word embedding.')
 flags.DEFINE_string('data_dir', './data/ptb', 'Data directory')
@@ -32,7 +32,7 @@ flags.DEFINE_integer("max_steps", 5000,
 flags.DEFINE_integer('steps_per_checkpoint', 1000,
                      'How many training steps to do per checkpoint.')
 flags.DEFINE_integer(
-    'print_every', 200,
+    'print_every', 100,
     'How many steps/minibatches between printing out the loss.')
 flags.DEFINE_boolean('save', False, 'Save checkpoint files.')
 flags.DEFINE_boolean('eval', False, 'Run a evaluation process.')
@@ -130,15 +130,15 @@ def train():
             loss += step_loss / FLAGS.print_every
             current_step += 1
 
-            global_step = model.global_step.eval()
-
             if current_step % FLAGS.print_every == 0:
                 dev_loss = sampled_loss(sess, model, dev_set)
+
+                global_step = model.global_step.eval()
                 metadata.add(global_step, 'dev_loss', dev_loss)
                 metadata.add(global_step, 'train_loss', loss)
 
                 print('global step {} step-time {:.2f} loss {:f}'
-                      .format(model.global_step.eval(), step_time, loss))
+                      .format(global_step, step_time, loss))
                 step_time, loss = 0.0, 0.0
 
             if current_step % FLAGS.steps_per_checkpoint == 0:
