@@ -54,14 +54,14 @@ def print_data(batch_encoder_inputs, batch_decoder_inputs,
 
 class VariationalAutoEncoder(object):
     def __init__(self, learning_rate, batch_size, num_units, embedding_size,
-                 max_gradient_norm, buckets, vocab, forward_only):
+                 max_gradient_norm, reg_scale, buckets, vocab, forward_only):
         self.batch_size = batch_size
         self.buckets = buckets
         self.global_step = tf.Variable(0, trainable=False)
         self.learning_rate = learning_rate
         self.vocab = vocab
         vocab_size = vocab.size
-        self.reg_scale = 1e-6
+        self.reg_scale = reg_scale
 
         self.encoder_inputs = []
         self.decoder_inputs = []
