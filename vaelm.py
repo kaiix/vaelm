@@ -25,10 +25,10 @@ flags.DEFINE_string('embedding', './data/sick/sick.300d.npy',
                     'Pre-trained word embeddings')
 # model
 flags.DEFINE_integer('num_units', 300, 'Size of each LSTM layer.')
-flags.DEFINE_integer('embedding_size', 300, 'Size of word embedding.')
+flags.DEFINE_integer('embedding_size', 400, 'Size of word embedding.')
 flags.DEFINE_boolean('use_embedding', False, 'Use pre-trained embedding')
 # parameters
-flags.DEFINE_float('learning_rate', 0.003, 'Learning rate.')
+flags.DEFINE_float('learning_rate', 0.001, 'Learning rate.')
 flags.DEFINE_float('max_gradient_norm', 5.0, 'Clip gradients to this norm.')
 flags.DEFINE_integer('batch_size', 50, 'Batch size to use during training.')
 flags.DEFINE_integer("max_steps", 5000,
@@ -138,13 +138,14 @@ def train():
 
             if current_step % FLAGS.print_every == 0:
                 dev_loss = sampled_loss(sess, model, dev_set)
+                perplexity = np.exp(loss) if loss < 300 else float('inf')
 
                 global_step = model.global_step.eval()
                 metadata.add(global_step, 'dev_loss', dev_loss)
                 metadata.add(global_step, 'train_loss', loss)
 
-                print('global step {} step-time {:.2f} loss {:f}'
-                      .format(global_step, step_time, loss))
+                print('global step {} step-time {:.2f} loss {:f} ppl {:.2f}'
+                      .format(global_step, step_time, loss, perplexity))
                 step_time, loss = 0.0, 0.0
 
             if current_step % FLAGS.steps_per_checkpoint == 0:
@@ -181,7 +182,9 @@ def sampled_loss(session, model, dev_set):
         print('  eval: bucket {} loss {:f}'.format(bucket_id, eval_loss))
         dev_loss += eval_loss
     dev_loss /= nbuckets
-    print('  average sampled dev loss: {:f}'.format(dev_loss))
+    perplexity = np.exp(dev_loss) if dev_loss < 300 else float('inf')
+    print('  average sampled dev loss: {:f} ppl {:.2f}'.format(dev_loss,
+                                                               perplexity))
     return dev_loss
 
 
