@@ -107,27 +107,30 @@ class VariationalAutoEncoder(object):
                 _, state = tf.nn.rnn(lstm_cell,
                                      emb_encoder_inputs,
                                      dtype=tf.float32,
-                                     scope='encoder')
+                                     scope='tied_autoencoder')
 
-                proj_w = tf.get_variable('proj_w', [num_units, vocab_size])
-                proj_b = tf.get_variable('proj_b', [vocab_size])
-                if forward_only:
-                    loop_function = _extract_argmax_and_embed(self.embedding,
-                                                              (proj_w, proj_b))
-                else:
-                    loop_function = None
+            proj_w = tf.get_variable('proj_w', [num_units, vocab_size])
+            proj_b = tf.get_variable('proj_b', [vocab_size])
+            if forward_only:
+                loop_function = _extract_argmax_and_embed(self.embedding,
+                                                          (proj_w, proj_b))
+            else:
+                loop_function = None
 
+            with tf.variable_scope('autoencoder',
+                                   regularizer=l2_reg,
+                                   reuse=True):
                 outputs, _ = tf.nn.seq2seq.rnn_decoder(
                     emb_decoder_inputs,
                     state,
                     lstm_cell,
                     loop_function=loop_function,
-                    scope='decoder')
+                    scope='tied_autoencoder')
                 assert same_shape(outputs[0], (None, num_units))
 
-                logits = [tf.nn.xw_plus_b(output, proj_w, proj_b)
-                          for output in outputs]
-                assert same_shape(logits[0], (None, vocab_size))
+            logits = [tf.nn.xw_plus_b(output, proj_w, proj_b)
+                      for output in outputs]
+            assert same_shape(logits[0], (None, vocab_size))
 
             loss = tf.nn.seq2seq.sequence_loss(logits, targets, weights)
             if reg_scale > 0.0:
