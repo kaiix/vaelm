@@ -54,8 +54,8 @@ def print_data(batch_encoder_inputs, batch_decoder_inputs,
 
 class VariationalAutoEncoder(object):
     def __init__(self, learning_rate, batch_size, num_units, embedding_size,
-                 max_gradient_norm, reg_scale, keep_prob, buckets, vocab,
-                 forward_only):
+                 max_gradient_norm, reg_scale, keep_prob, share_param, buckets,
+                 vocab, forward_only):
         self.batch_size = batch_size
         self.buckets = buckets
         self.global_step = tf.Variable(0, trainable=False)
@@ -104,33 +104,34 @@ class VariationalAutoEncoder(object):
 
             l2_reg = tf.contrib.layers.l2_regularizer(self.reg_scale)
             with tf.variable_scope('autoencoder', regularizer=l2_reg):
+                encoder_scope = 'tied_rnn' if share_param else 'rnn_encoder'
                 _, state = tf.nn.rnn(lstm_cell,
                                      emb_encoder_inputs,
                                      dtype=tf.float32,
-                                     scope='tied_autoencoder')
+                                     scope=encoder_scope)
 
-            proj_w = tf.get_variable('proj_w', [num_units, vocab_size])
-            proj_b = tf.get_variable('proj_b', [vocab_size])
-            if forward_only:
-                loop_function = _extract_argmax_and_embed(self.embedding,
-                                                          (proj_w, proj_b))
-            else:
-                loop_function = None
+                proj_w = tf.get_variable('proj_w', [num_units, vocab_size])
+                proj_b = tf.get_variable('proj_b', [vocab_size])
+                if forward_only:
+                    loop_function = _extract_argmax_and_embed(self.embedding,
+                                                              (proj_w, proj_b))
+                else:
+                    loop_function = None
 
-            with tf.variable_scope('autoencoder',
-                                   regularizer=l2_reg,
-                                   reuse=True):
+                if share_param:
+                    tf.get_variable_scope().reuse_variables()
+                decoder_scope = 'tied_rnn' if share_param else 'rnn_decoder'
                 outputs, _ = tf.nn.seq2seq.rnn_decoder(
                     emb_decoder_inputs,
                     state,
                     lstm_cell,
                     loop_function=loop_function,
-                    scope='tied_autoencoder')
+                    scope=decoder_scope)
                 assert same_shape(outputs[0], (None, num_units))
 
-            logits = [tf.nn.xw_plus_b(output, proj_w, proj_b)
-                      for output in outputs]
-            assert same_shape(logits[0], (None, vocab_size))
+                logits = [tf.nn.xw_plus_b(output, proj_w, proj_b)
+                          for output in outputs]
+                assert same_shape(logits[0], (None, vocab_size))
 
             loss = tf.nn.seq2seq.sequence_loss(logits, targets, weights)
             if reg_scale > 0.0:

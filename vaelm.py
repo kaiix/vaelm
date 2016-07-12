@@ -36,6 +36,8 @@ flags.DEFINE_integer("max_steps", 5000,
 flags.DEFINE_float('reg_scale', 5e-5, 'Regularization scale.')
 flags.DEFINE_float('keep_prob', 1.0,
                    'keep probability for dropout regularization.')
+flags.DEFINE_boolean('share_param', False,
+                     'Share parameters between encoder and decoder.')
 # logging
 flags.DEFINE_integer('steps_per_checkpoint', 1000,
                      'How many training steps to do per checkpoint.')
@@ -82,7 +84,7 @@ def create_model(sess, vocab, forward_only=False):
     model = VariationalAutoEncoder(
         FLAGS.learning_rate, FLAGS.batch_size, FLAGS.num_units,
         FLAGS.embedding_size, FLAGS.max_gradient_norm, FLAGS.reg_scale,
-        FLAGS.keep_prob, _buckets, vocab, forward_only)
+        FLAGS.keep_prob, FLAGS.share_param, _buckets, vocab, forward_only)
     ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
     if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path):
         print('Reading model parameters from {}'.format(
