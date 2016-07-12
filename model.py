@@ -54,7 +54,7 @@ def print_data(batch_encoder_inputs, batch_decoder_inputs,
 
 class VariationalAutoEncoder(object):
     def __init__(self, learning_rate, batch_size, num_units, embedding_size,
-                 max_gradient_norm, reg_scale, dropout, buckets, vocab,
+                 max_gradient_norm, reg_scale, keep_prob, buckets, vocab,
                  forward_only):
         self.batch_size = batch_size
         self.buckets = buckets
@@ -90,8 +90,9 @@ class VariationalAutoEncoder(object):
 
         lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(num_units,
                                                  state_is_tuple=True)
-        lstm_cell = tf.nn.rnn_cell.DropoutWrapper(lstm_cell,
-                                                  input_keep_prob=dropout)
+        if keep_prob < 1.0:
+            lstm_cell = tf.nn.rnn_cell.DropoutWrapper(
+                lstm_cell, input_keep_prob=keep_prob)
 
         def autoencoder(encoder_inputs, decoder_inputs, targets, weights):
             emb_encoder_inputs = [tf.nn.embedding_lookup(self.embedding, i)
@@ -129,7 +130,7 @@ class VariationalAutoEncoder(object):
                 assert same_shape(logits[0], (None, vocab_size))
 
             loss = tf.nn.seq2seq.sequence_loss(logits, targets, weights)
-            if reg_scale > 0.:
+            if reg_scale > 0.0:
                 regularizers = tf.add_n(tf.get_collection(
                     tf.GraphKeys.REGULARIZATION_LOSSES))
                 loss += regularizers
