@@ -39,6 +39,7 @@ flags.DEFINE_float('keep_prob', 1.0,
                    'keep probability for dropout regularization.')
 flags.DEFINE_boolean('share_param', False,
                      'Share parameters between encoder and decoder.')
+flags.DEFINE_integer('latent_dim', 20, 'Size of latent variable.')
 # logging
 flags.DEFINE_integer('steps_per_checkpoint', 1000,
                      'How many training steps to do per checkpoint.')
@@ -85,7 +86,8 @@ def create_model(sess, vocab, forward_only=False):
     model = VariationalAutoEncoder(
         FLAGS.learning_rate, FLAGS.batch_size, FLAGS.num_units,
         FLAGS.embedding_size, FLAGS.max_gradient_norm, FLAGS.reg_scale,
-        FLAGS.keep_prob, FLAGS.share_param, _buckets, vocab, forward_only)
+        FLAGS.keep_prob, FLAGS.share_param, FLAGS.latent_dim, _buckets, vocab,
+        forward_only)
     ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
     if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path):
         print('Reading model parameters from {}'.format(
@@ -135,8 +137,9 @@ def train():
             start_time = time.time()
             encoder_inputs, decoder_inputs, target_weights = model.get_batch(
                 train_set, bucket_id)
-            step_loss, _ = model.step(sess, encoder_inputs, decoder_inputs,
-                                      target_weights, bucket_id, False)
+            step_loss, cost_detail = model.step(sess, encoder_inputs,
+                                                decoder_inputs, target_weights,
+                                                bucket_id, False)
             step_time += (time.time() - start_time) / FLAGS.print_every
             loss += step_loss / FLAGS.print_every
             current_step += 1
@@ -148,7 +151,12 @@ def train():
                 global_step = model.global_step.eval()
                 metadata.add(global_step, 'dev_loss', dev_loss)
                 metadata.add(global_step, 'train_loss', loss)
+                metadata.add(global_step, 'reconstruction_loss',
+                             cost_detail[0])
+                metadata.add(global_step, 'vae_loss', cost_detail[1])
+                metadata.add(global_step, 'annealing_weight', cost_detail[2])
 
+                print('cost detail: {:f} {:.6f} {:f}'.format(*cost_detail))
                 print('global step {} step-time {:.2f} loss {:f} ppl {:.2f}'
                       .format(global_step, step_time, loss, perplexity))
                 step_time, loss = 0.0, 0.0

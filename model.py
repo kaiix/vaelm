@@ -10,6 +10,7 @@ import numpy as np
 import tensorflow as tf
 
 from nnutils import same_shape
+from nnutils import linear
 
 
 def _extract_argmax_and_embed(embedding,
@@ -54,8 +55,8 @@ def print_data(batch_encoder_inputs, batch_decoder_inputs,
 
 class VariationalAutoEncoder(object):
     def __init__(self, learning_rate, batch_size, num_units, embedding_size,
-                 max_gradient_norm, reg_scale, keep_prob, share_param, buckets,
-                 vocab, forward_only):
+                 max_gradient_norm, reg_scale, keep_prob, share_param,
+                 latent_dim, buckets, vocab, forward_only):
         self.batch_size = batch_size
         self.buckets = buckets
         self.global_step = tf.Variable(0, trainable=False)
@@ -118,6 +119,20 @@ class VariationalAutoEncoder(object):
                 else:
                     loop_function = None
 
+                with tf.variable_scope('variational'):
+                    with tf.variable_scope('mean'):
+                        mean = linear(state, latent_dim, True)
+                    with tf.variable_scope('stddev'):
+                        log_variance = linear(state, latent_dim, True)
+                        stddev = tf.sqrt(tf.exp(log_variance))
+                    batch_size = tf.shape(state[0])[0]
+                    episilon = tf.random_normal([batch_size, latent_dim])
+                    z = mean + stddev * episilon
+                    with tf.variable_scope('state'):
+                        concat = linear(z, 2 * num_units, True)
+                        state = tf.nn.rnn_cell.LSTMStateTuple(*tf.split(
+                            1, 2, concat))
+
                 if share_param:
                     tf.get_variable_scope().reuse_variables()
                 decoder_scope = 'tied_rnn' if share_param else 'rnn_decoder'
@@ -133,26 +148,36 @@ class VariationalAutoEncoder(object):
                           for output in outputs]
                 assert same_shape(logits[0], (None, vocab_size))
 
-            loss = tf.nn.seq2seq.sequence_loss(logits, targets, weights)
+            reconstruction_loss = tf.nn.seq2seq.sequence_loss(logits, targets,
+                                                              weights)
+            # -kl_loss
+            vae_loss = tf.reduce_mean(tf.reduce_sum(0.5 * (tf.square(
+                mean) + tf.square(stddev) - 2.0 * tf.log(stddev) - 1.0), 1))
+            annealing_weight = tf.nn.sigmoid(tf.cast(self.global_step,
+                                                     tf.float32) - 3e4)
+            loss = reconstruction_loss + annealing_weight * vae_loss
             if reg_scale > 0.0:
                 regularizers = tf.add_n(tf.get_collection(
                     tf.GraphKeys.REGULARIZATION_LOSSES))
                 loss += regularizers
-            return logits, loss
+            return logits, loss, (reconstruction_loss, vae_loss,
+                                  annealing_weight)
 
         self.losses = []
         self.outputs = []
+        self.costs = []
         for j, seq_length in enumerate(buckets):
             encoder_size, decoder_size = seq_length, seq_length + 1
             with tf.variable_scope(tf.get_variable_scope(),
                                    reuse=True if j > 0 else None):
-                bucket_outputs, loss = autoencoder(
+                bucket_outputs, loss, cost_detail = autoencoder(
                     self.encoder_inputs[:encoder_size],
                     self.decoder_inputs[:decoder_size],
                     self.targets[:decoder_size],
                     self.target_weights[:decoder_size])
                 self.outputs.append(bucket_outputs)
                 self.losses.append(loss)
+                self.costs.append(cost_detail)
 
         params = tf.trainable_variables()
         self.updates = []
@@ -189,6 +214,9 @@ class VariationalAutoEncoder(object):
             output_feed = [
                 self.updates[bucket_id],
                 self.losses[bucket_id],
+                self.costs[bucket_id][0],
+                self.costs[bucket_id][1],
+                self.costs[bucket_id][2],
             ]
         else:
             output_feed = [self.losses[bucket_id]]
@@ -197,7 +225,7 @@ class VariationalAutoEncoder(object):
 
         outputs = session.run(output_feed, input_feed)
         if not forward_only:
-            return outputs[1], None  # loss
+            return outputs[1], outputs[2:]  # loss, (xent, -kl, annealing)
         else:
             return outputs[0], outputs[1:]  # loss, logits
 

@@ -37,6 +37,10 @@ def merge_metadata(data_dir):
 
 
 def main(data_dir):
+    plt.figure()
+
+    # plot overall loss
+    plt.subplot(2, 1, 1)
     data = merge_metadata(data_dir)
     train_loss = data['train_loss']
     steps, losses = zip(*train_loss)
@@ -44,9 +48,30 @@ def main(data_dir):
     dev_loss = data['dev_loss']
     steps, losses = zip(*dev_loss)
     plt.plot(steps, losses, color='r', label='dev loss')
+    reconstruction_loss = data['reconstruction_loss']
+    steps, losses = zip(*reconstruction_loss)
+    plt.plot(steps, losses, color='g', label='reconstruction loss')
     plt.xlabel('step')
     plt.ylabel('loss')
     plt.legend(loc='upper right')
+    plt.ylim((0, 10))
+
+    # plot vae loss, and annealing weight
+    ax1 = plt.subplot(2, 1, 2)
+    annealing_weight = data['annealing_weight']
+    steps, weights = zip(*annealing_weight)
+    ax1.plot(steps, weights, 'b-', label='KL term weight', lw=2.0)
+    plt.ylim(0, 1)
+    plt.ylabel('KL term weight')
+    plt.xlabel('step')
+
+    ax2 = ax1.twinx()
+    vae_loss = data['vae_loss']
+    steps, losses = zip(*vae_loss)
+    ax2.plot(steps, losses, 'r-', label='KL term value', lw=2.0)
+    plt.ylim(0, 10)
+    plt.ylabel('KL term value')
+
     plt.show()
 
 
