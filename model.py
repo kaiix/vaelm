@@ -53,6 +53,13 @@ def print_data(batch_encoder_inputs, batch_decoder_inputs,
             map(vocab.token, dec[1:]), w))))
 
 
+def _unk_dropout(x, unk_index, keep_prob=0.5):
+    x = np.array(x)
+    keep_indices = np.floor(np.random.uniform(size=len(x)) + keep_prob)
+    x[keep_indices == 0] = unk_index
+    return x.tolist()
+
+
 class VariationalAutoEncoder(object):
     def __init__(self, learning_rate, batch_size, num_units, embedding_size,
                  max_gradient_norm, reg_scale, keep_prob, share_param,
@@ -94,6 +101,9 @@ class VariationalAutoEncoder(object):
         if keep_prob < 1.0:
             lstm_cell = tf.nn.rnn_cell.DropoutWrapper(
                 lstm_cell, input_keep_prob=keep_prob)
+
+        def annealing_schedule(t, pivot):
+            return tf.nn.sigmoid((t - pivot) / pivot * 100)
 
         def autoencoder(encoder_inputs, decoder_inputs, targets, weights):
             emb_encoder_inputs = [tf.nn.embedding_lookup(self.embedding, i)
@@ -153,8 +163,9 @@ class VariationalAutoEncoder(object):
             # -kl_loss
             vae_loss = tf.reduce_mean(tf.reduce_sum(0.5 * (tf.square(
                 mean) + tf.square(stddev) - 2.0 * tf.log(stddev) - 1.0), 1))
-            annealing_weight = tf.nn.sigmoid(tf.cast(self.global_step,
-                                                     tf.float32) - 3e4)
+
+            annealing_weight = annealing_schedule(
+                tf.cast(self.global_step, tf.float32), 1e4)
             loss = reconstruction_loss + annealing_weight * vae_loss
             if reg_scale > 0.0:
                 regularizers = tf.add_n(tf.get_collection(
@@ -237,7 +248,8 @@ class VariationalAutoEncoder(object):
 
         for _ in xrange(self.batch_size):
             encoder_input = random.choice(data[bucket_id])
-            decoder_input = encoder_input + [self.vocab.end_index]
+            decoder_input = _unk_dropout(
+                encoder_input, self.vocab.unk_index) + [self.vocab.end_index]
 
             encoder_pad_size = encoder_size - len(encoder_input)
             encoder_inputs.append(encoder_input + [self.vocab.pad_index] *
