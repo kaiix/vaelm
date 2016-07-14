@@ -32,8 +32,8 @@ flags.DEFINE_boolean('use_embedding', False, 'Use pre-trained embedding')
 flags.DEFINE_float('learning_rate', 0.001, 'Learning rate.')
 flags.DEFINE_float('max_gradient_norm', 5.0, 'Clip gradients to this norm.')
 flags.DEFINE_integer('batch_size', 50, 'Batch size to use during training.')
-flags.DEFINE_integer("max_steps", 5000,
-                     "Number of (global) training steps to perform")
+flags.DEFINE_integer('max_steps', 5000,
+                     'Number of (global) training steps to perform.')
 flags.DEFINE_float('reg_scale', 5e-5, 'Regularization scale.')
 flags.DEFINE_float('keep_prob', 1.0,
                    'keep probability for dropout regularization.')
@@ -262,9 +262,30 @@ def restore_config(config_file):
         setattr(FLAGS, k, v)
 
 
+_SAVE_FLAGS = [
+    'data_dir',
+    'embedding',
+    'num_units',
+    'embedding_size',
+    'use_embedding',
+    'learning_rate',
+    'max_gradient_norm',
+    'batch_size',
+    'reg_scale',
+    'keep_prob',
+    'share_param',
+    'log_dir',
+    # 'latent_dim',
+]
+
+
 def save_config(config_file):
     with open(config_file, 'w') as f:
-        pickle.dump(get_flags(), f)
+        flags = get_flags()
+        saved_flags = {}
+        for k in _SAVE_FLAGS:
+            saved_flags[k] = flags[k]
+        pickle.dump(saved_flags, f)
 
 
 if __name__ == '__main__':
