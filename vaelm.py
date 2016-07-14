@@ -51,6 +51,7 @@ flags.DEFINE_string('log_dir', './logs', 'Log directory.')
 flags.DEFINE_boolean('save', False, 'Save checkpoint files.')
 # other
 flags.DEFINE_boolean('eval', False, 'Run a evaluation process.')
+flags.DEFINE_boolean('interactive', False, 'Run a interactive shell.')
 
 FLAGS = flags.FLAGS
 
@@ -220,6 +221,27 @@ def evaluate():
                 print('[{}]: {}'.format(i + 1, s))
 
 
+def _start_shell(local_ns=None):
+    # An interactive shell is useful for debugging/development.
+    import IPython
+    user_ns = {}
+    if local_ns:
+        user_ns.update(local_ns)
+    user_ns.update(globals())
+    IPython.start_ipython(argv=[], user_ns=user_ns)
+
+
+def shell():
+    vocab = Vocab(os.path.join(FLAGS.data_dir, 'vocab-cased.txt'))
+
+    with tf.Session() as sess:
+        with tf.variable_scope('vaelm', reuse=None):
+            model = create_model(sess, vocab, True)
+            model.batch_size = 1
+
+    _start_shell(locals())
+
+
 def main(_):
     header('Variational auto-encoder language model')
 
@@ -241,6 +263,9 @@ def main(_):
     if FLAGS.eval:
         header('Evaluating model')
         evaluate()
+    elif FLAGS.interactive:
+        header('Interactive shell')
+        shell()
     else:
         header('Training model')
         train()
