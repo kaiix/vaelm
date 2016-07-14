@@ -9,6 +9,7 @@ import sys
 import cPickle as pickle
 
 from matplotlib import pyplot as plt
+import numpy as np
 
 
 def listdir(root_dir, predicate=lambda f: True):
@@ -69,7 +70,8 @@ def main(data_dir):
     vae_loss = data['vae_loss']
     steps, losses = zip(*vae_loss)
     ax2.plot(steps, losses, 'r-', label='KL term value', lw=2.0)
-    plt.ylim(0, 10)
+    plt.ylim(0, 8)
+    plt.yticks(np.linspace(0, 8, 9))
     plt.ylabel('KL term value')
 
     plt.show()
