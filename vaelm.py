@@ -7,6 +7,7 @@ from __future__ import division
 import os
 import time
 import sys
+import cPickle as pickle
 
 import numpy as np
 import tensorflow as tf
@@ -217,8 +218,14 @@ def main(_):
 
     if FLAGS.save and not tf.gfile.Exists(FLAGS.checkpoint_dir):
         tf.gfile.MakeDirs(FLAGS.checkpoint_dir)
+    if FLAGS.save:
+        config_file = os.path.join(FLAGS.checkpoint_dir, 'config.pkl')
+        if tf.gfile.Exists(config_file):
+            restore_config(config_file)
+        else:
+            save_config(config_file)
 
-    header('Model settings')
+    header('Configuration')
     print_flags()
 
     if FLAGS.eval:
@@ -235,13 +242,29 @@ def header(s):
     print('-' * 50)
 
 
-def print_flags():
+def get_flags():
     try:
         FLAGS.__should_not_exist__
     except:
         pass
-    for k, v in vars(FLAGS)['__flags'].iteritems():
+    return vars(FLAGS)['__flags']
+
+
+def print_flags():
+    for k, v in get_flags().iteritems():
         print('{:20s}\t= {}'.format(k, v))
+
+
+def restore_config(config_file):
+    with open(config_file) as f:
+        flags = pickle.load(f)
+    for k, v in flags.iteritems():
+        setattr(FLAGS, k, v)
+
+
+def save_config(config_file):
+    with open(config_file, 'w') as f:
+        pickle.dump(get_flags(), f)
 
 
 if __name__ == '__main__':
