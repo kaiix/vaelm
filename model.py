@@ -133,8 +133,9 @@ class VariationalAutoEncoder(object):
                     with tf.variable_scope('mean'):
                         mean = linear(state, latent_dim, True)
                     with tf.variable_scope('stddev'):
-                        log_variance = linear(state, latent_dim, True)
-                        stddev = tf.sqrt(tf.exp(log_variance))
+                        # log(stddev) or log(var) is all ok for the output
+                        log_stddev = linear(state, latent_dim, True)
+                        stddev = tf.exp(log_stddev)
                     batch_size = tf.shape(state[0])[0]
                     episilon = tf.random_normal([batch_size, latent_dim])
                     z = mean + stddev * episilon
@@ -158,20 +159,22 @@ class VariationalAutoEncoder(object):
                           for output in outputs]
                 assert same_shape(logits[0], (None, vocab_size))
 
+            # cross entropy loss = -sum(y * log(p(y))
             reconstruction_loss = tf.nn.seq2seq.sequence_loss(logits, targets,
                                                               weights)
-            # -kl_loss
-            vae_loss = tf.reduce_mean(tf.reduce_sum(0.5 * (tf.square(
-                mean) + tf.square(stddev) - 2.0 * tf.log(stddev) - 1.0), 1))
+            kl_loss = -0.5 * (
+                1.0 + 2 * log_stddev - tf.square(mean) - tf.square(stddev))
+            kl_loss = tf.reduce_sum(kl_loss) / tf.cast(batch_size, tf.float32)
 
             annealing_weight = annealing_schedule(
-                tf.cast(self.global_step, tf.float32), 1e4)
-            loss = reconstruction_loss + annealing_weight * vae_loss
+                tf.cast(self.global_step, tf.float32), 5e4)
+            # loss = -E[log(p(x))] + D[q(z)||p(z)]
+            loss = reconstruction_loss + annealing_weight * kl_loss
             if reg_scale > 0.0:
                 regularizers = tf.add_n(tf.get_collection(
                     tf.GraphKeys.REGULARIZATION_LOSSES))
                 loss += regularizers
-            return logits, loss, (reconstruction_loss, vae_loss,
+            return logits, loss, (reconstruction_loss, kl_loss,
                                   annealing_weight)
 
         self.losses = []
