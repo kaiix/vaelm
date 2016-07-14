@@ -71,6 +71,7 @@ class VariationalAutoEncoder(object):
         self.vocab = vocab
         vocab_size = vocab.size
         self.reg_scale = reg_scale
+        self.forward_only = forward_only
 
         self.encoder_inputs = []
         self.decoder_inputs = []
@@ -167,7 +168,7 @@ class VariationalAutoEncoder(object):
             kl_loss = tf.reduce_sum(kl_loss) / tf.cast(batch_size, tf.float32)
 
             annealing_weight = annealing_schedule(
-                tf.cast(self.global_step, tf.float32), 5e4)
+                tf.cast(self.global_step, tf.float32), 3e4)
             # loss = -E[log(p(x))] + D[q(z)||p(z)]
             loss = reconstruction_loss + annealing_weight * kl_loss
             if reg_scale > 0.0:
@@ -251,8 +252,12 @@ class VariationalAutoEncoder(object):
 
         for _ in xrange(self.batch_size):
             encoder_input = random.choice(data[bucket_id])
-            decoder_input = _unk_dropout(
-                encoder_input, self.vocab.unk_index) + [self.vocab.end_index]
+            if not self.forward_only:
+                decoder_input = (
+                    _unk_dropout(encoder_input, self.vocab.unk_index) +
+                    [self.vocab.end_index])
+            else:
+                decoder_input = encoder_input + [self.vocab.end_index]
 
             encoder_pad_size = encoder_size - len(encoder_input)
             encoder_inputs.append(encoder_input + [self.vocab.pad_index] *

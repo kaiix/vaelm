@@ -215,6 +215,8 @@ def evaluate():
                 continue
             output = model.predict(sess, source)
             for i, s in enumerate(output):
+                s = s.replace(vocab.unk_token, '?')
+                s = s.replace(vocab.end_token, '').strip()
                 print('[{}]: {}'.format(i + 1, s))
 
 
