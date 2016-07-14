@@ -303,6 +303,7 @@ _SAVE_FLAGS = [
     'embedding',
     'num_units',
     'embedding_size',
+    'latent_dim',
     'use_embedding',
     'learning_rate',
     'max_gradient_norm',
@@ -311,7 +312,6 @@ _SAVE_FLAGS = [
     'keep_prob',
     'share_param',
     'log_dir',
-    # 'latent_dim',
 ]
 
 
