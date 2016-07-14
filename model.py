@@ -67,6 +67,7 @@ class VariationalAutoEncoder(object):
         self.reg_scale = reg_scale
         self.forward_only = forward_only
         self.keep_prob = keep_prob
+        self.scale_latent_variable_variances = 0.01
 
         self.encoder_inputs = []
         self.decoder_inputs = []
@@ -152,17 +153,21 @@ class VariationalAutoEncoder(object):
                 loop_function = None
 
                 with tf.variable_scope('latent'):
-                    mean = linear(state, latent_dim, True, scope='mean')
-                    # log(stddev) or log(var) is all ok for the output
-                    log_stddev = linear(state,
-                                        latent_dim,
-                                        True,
-                                        bias_start=-5.0,
-                                        scope='log_stddev')
-                    stddev = tf.exp(log_stddev)
+                    mean = linear(state,
+                                  latent_dim,
+                                  True,
+                                  bias_start=0.0,
+                                  scope='mean')
+                    var = tf.nn.softplus(linear(
+                        state,
+                        latent_dim,
+                        True,
+                        bias_start=0.0,
+                        scope='var')) * self.scale_latent_variable_variances
+
                     batch_size = tf.shape(state[0])[0]
                     episilon = tf.random_normal([batch_size, latent_dim])
-                    z = mean + stddev * episilon
+                    z = mean + tf.sqrt(var) * episilon
 
                 concat = linear(z, 2 * num_units, True, scope='state')
                 state = tf.nn.rnn_cell.LSTMStateTuple(*tf.split(1, 2, concat))
@@ -185,8 +190,7 @@ class VariationalAutoEncoder(object):
             # cross entropy loss = -sum(y * log(p(y))
             reconstruction_loss = tf.nn.seq2seq.sequence_loss(logits, targets,
                                                               weights)
-            kl_loss = -0.5 * (
-                1.0 + 2 * log_stddev - tf.square(mean) - tf.square(stddev))
+            kl_loss = -0.5 * (1.0 + tf.log(var) - tf.square(mean) - var)
             kl_loss = tf.reduce_sum(kl_loss) / tf.cast(batch_size, tf.float32)
 
             annealing_weight = annealing_schedule(
