@@ -289,7 +289,7 @@ class VariationalAutoEncoder(object):
 
         return batch_encoder_inputs, batch_decoder_inputs, batch_weights
 
-    def predict(self, session, sentence):
+    def predict(self, session, sentence, verbose=False):
         source_ids = map(self.vocab.index, sentence.split())
         assert len(source_ids) < self.buckets[-1]
         eval_set = [[] for _ in self.buckets]
@@ -299,7 +299,9 @@ class VariationalAutoEncoder(object):
                 break
         encoder_inputs, decoder_inputs, target_weights = self.get_batch(
             eval_set, bucket_id)
-        # print_data(encoder_inputs, decoder_inputs, target_weights, self.vocab)
+        if verbose:
+            print_data(encoder_inputs, decoder_inputs, target_weights,
+                       self.vocab)
         _, outputs = self.step(session, encoder_inputs, decoder_inputs,
                                target_weights, bucket_id, True)
         assert len(outputs) == self.buckets[bucket_id] + 1

@@ -51,6 +51,7 @@ flags.DEFINE_string('log_dir', './logs', 'Log directory.')
 flags.DEFINE_boolean('save', False, 'Save checkpoint files.')
 # other
 flags.DEFINE_boolean('eval', False, 'Run a evaluation process.')
+flags.DEFINE_boolean('verbose', False, 'Print input data detail.')
 flags.DEFINE_boolean('interactive', False, 'Run a interactive shell.')
 
 FLAGS = flags.FLAGS
@@ -214,7 +215,7 @@ def evaluate():
             source = raw_input('> ')
             if not source:
                 continue
-            output = model.predict(sess, source)
+            output = model.predict(sess, source, FLAGS.verbose)
             for i, s in enumerate(output):
                 s = s.replace(vocab.unk_token, '?')
                 s = s.replace(vocab.end_token, '').strip()
