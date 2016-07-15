@@ -53,7 +53,7 @@ def print_data(batch_encoder_inputs, batch_decoder_inputs,
             map(vocab.token, dec[1:]), w))))
 
 
-def _unk_dropout(x, unk_index, keep_prob=0.5):
+def _unk_dropout(x, unk_index, keep_prob=1.0):
     x = np.array(x)
     keep_indices = np.floor(np.random.uniform(size=len(x)) + keep_prob)
     x[keep_indices == 0] = unk_index
