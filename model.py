@@ -129,6 +129,8 @@ class VariationalAutoEncoder(object):
                                                               (proj_w, proj_b))
                 else:
                     loop_function = None
+                # disable when using latent variables
+                loop_function = None
 
                 with tf.variable_scope('variational'):
                     with tf.variable_scope('mean'):
