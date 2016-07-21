@@ -137,7 +137,7 @@ class VariationalAutoEncoder(object):
                         mean = linear(state, latent_dim, True)
                     with tf.variable_scope('stddev'):
                         # log(stddev) or log(var) is all ok for the output
-                        log_stddev = linear(state, latent_dim, True)
+                        log_stddev = linear(state, latent_dim, True, bias=-5.0)
                         stddev = tf.exp(log_stddev)
                     batch_size = tf.shape(state[0])[0]
                     episilon = tf.random_normal([batch_size, latent_dim])
