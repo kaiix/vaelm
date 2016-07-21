@@ -63,11 +63,17 @@ def _unk_dropout(x, unk_index, keep_prob=1.0):
 class VariationalAutoEncoder(object):
     def __init__(self, learning_rate, batch_size, num_units, embedding_size,
                  max_gradient_norm, reg_scale, keep_prob, share_param,
-                 latent_dim, buckets, vocab, forward_only):
+                 latent_dim, lr_decay, buckets, vocab, forward_only):
         self.batch_size = batch_size
         self.buckets = buckets
         self.global_step = tf.Variable(0, trainable=False)
         self.learning_rate = learning_rate
+        if lr_decay > 0.0:
+            self.learning_rate = tf.train.exponential_decay(learning_rate,
+                                                            self.global_step,
+                                                            100,
+                                                            0.95,
+                                                            staircase=True)
         self.vocab = vocab
         vocab_size = vocab.size
         self.reg_scale = reg_scale

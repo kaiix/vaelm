@@ -30,6 +30,7 @@ flags.DEFINE_integer('embedding_size', 400, 'Size of word embedding.')
 flags.DEFINE_boolean('use_embedding', False, 'Use pre-trained embedding')
 # parameters
 flags.DEFINE_float('learning_rate', 0.001, 'Learning rate.')
+flags.DEFINE_float('lr_decay', 0.0, 'Learning rate decay factor.')
 flags.DEFINE_float('max_gradient_norm', 5.0, 'Clip gradients to this norm.')
 flags.DEFINE_integer('batch_size', 50, 'Batch size to use during training.')
 flags.DEFINE_integer('max_steps', 5000,
@@ -88,8 +89,8 @@ def create_model(sess, vocab, forward_only=False):
     model = VariationalAutoEncoder(
         FLAGS.learning_rate, FLAGS.batch_size, FLAGS.num_units,
         FLAGS.embedding_size, FLAGS.max_gradient_norm, FLAGS.reg_scale,
-        FLAGS.keep_prob, FLAGS.share_param, FLAGS.latent_dim, _buckets, vocab,
-        forward_only)
+        FLAGS.keep_prob, FLAGS.share_param, FLAGS.latent_dim, FLAGS.lr_decay,
+        _buckets, vocab, forward_only)
     ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
     if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path):
         print('Reading model parameters from {}'.format(
@@ -148,7 +149,8 @@ def train():
 
             if current_step % FLAGS.print_every == 0:
                 dev_loss = sampled_loss(sess, model, dev_set)
-                perplexity = np.exp(loss) if loss < 300 else float('inf')
+                ppl = np.exp(loss) if loss < 300 else float('inf')
+                lr = model.learning_rate.eval()
 
                 global_step = model.global_step.eval()
                 metadata.add(global_step, 'dev_loss', dev_loss)
@@ -159,8 +161,9 @@ def train():
                 metadata.add(global_step, 'annealing_weight', cost_detail[2])
 
                 print('cost detail: {:f} {:.6f} {:f}'.format(*cost_detail))
-                print('global step {} step-time {:.2f} loss {:f} ppl {:.2f}'
-                      .format(global_step, step_time, loss, perplexity))
+                print(
+                    'global step {} step-time {:2f} lr {:f} loss {:f} ppl {:f}'
+                    .format(global_step, step_time, lr, loss, ppl))
                 step_time, loss = 0.0, 0.0
 
             if current_step % FLAGS.steps_per_checkpoint == 0:
