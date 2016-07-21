@@ -132,20 +132,17 @@ class VariationalAutoEncoder(object):
                 # disable when using latent variables
                 loop_function = None
 
-                with tf.variable_scope('variational'):
-                    with tf.variable_scope('mean'):
-                        mean = linear(state, latent_dim, True)
-                    with tf.variable_scope('stddev'):
-                        # log(stddev) or log(var) is all ok for the output
-                        log_stddev = linear(state, latent_dim, True, bias=-5.0)
-                        stddev = tf.exp(log_stddev)
+                with tf.variable_scope('latent'):
+                    mean = linear(state, latent_dim, True, scope='mean')
+                    # log(stddev) or log(var) is all ok for the output
+                    log_stddev = linear(state, latent_dim, True, bias_start=-5.0, scope='log_stddev')
+                    stddev = tf.exp(log_stddev)
                     batch_size = tf.shape(state[0])[0]
                     episilon = tf.random_normal([batch_size, latent_dim])
                     z = mean + stddev * episilon
-                    with tf.variable_scope('state'):
-                        concat = linear(z, 2 * num_units, True)
-                        state = tf.nn.rnn_cell.LSTMStateTuple(*tf.split(
-                            1, 2, concat))
+                    concat = linear(z, 2 * num_units, True, scope='state')
+                    state = tf.nn.rnn_cell.LSTMStateTuple(*tf.split(1, 2,
+                                                                    concat))
 
                 if share_param:
                     tf.get_variable_scope().reuse_variables()
