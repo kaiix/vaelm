@@ -150,7 +150,10 @@ def train():
             if current_step % FLAGS.print_every == 0:
                 dev_loss = sampled_loss(sess, model, dev_set)
                 ppl = np.exp(loss) if loss < 300 else float('inf')
-                lr = model.learning_rate.eval()
+                if FLAGS.lr_decay > 0.0:
+                    lr = model.learning_rate.eval()
+                else:
+                    lr = model.learning_rate
 
                 global_step = model.global_step.eval()
                 metadata.add(global_step, 'dev_loss', dev_loss)
@@ -160,9 +163,10 @@ def train():
                 metadata.add(global_step, 'vae_loss', cost_detail[1])
                 metadata.add(global_step, 'annealing_weight', cost_detail[2])
 
-                print('cost detail: {:f} {:.6f} {:f}'.format(*cost_detail))
+                print('cost detail: {:.2f} {:.2f} {:f}'.format(*cost_detail))
                 print(
-                    'global step {} step-time {:2f} lr {:f} loss {:f} ppl {:f}'
+                    '''global step {} step-time {:.2f} lr {:f} loss {:.2f}'''
+                    ''' ppl {:.2f}'''
                     .format(global_step, step_time, lr, loss, ppl))
                 step_time, loss = 0.0, 0.0
 

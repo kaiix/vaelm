@@ -68,16 +68,11 @@ class VariationalAutoEncoder(object):
         self.buckets = buckets
         self.global_step = tf.Variable(0, trainable=False)
         self.learning_rate = learning_rate
-        if lr_decay > 0.0:
-            self.learning_rate = tf.train.exponential_decay(learning_rate,
-                                                            self.global_step,
-                                                            100,
-                                                            0.95,
-                                                            staircase=True)
         self.vocab = vocab
         vocab_size = vocab.size
         self.reg_scale = reg_scale
         self.forward_only = forward_only
+        self.keep_prob = keep_prob
 
         self.encoder_inputs = []
         self.decoder_inputs = []
@@ -105,9 +100,6 @@ class VariationalAutoEncoder(object):
 
         lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(num_units,
                                                  state_is_tuple=True)
-        if keep_prob < 1.0:
-            lstm_cell = tf.nn.rnn_cell.DropoutWrapper(
-                lstm_cell, input_keep_prob=keep_prob)
 
         def annealing_schedule(t, pivot):
             return tf.nn.sigmoid((t - pivot) / pivot * 100)
@@ -141,7 +133,11 @@ class VariationalAutoEncoder(object):
                 with tf.variable_scope('latent'):
                     mean = linear(state, latent_dim, True, scope='mean')
                     # log(stddev) or log(var) is all ok for the output
-                    log_stddev = linear(state, latent_dim, True, bias_start=-5.0, scope='log_stddev')
+                    log_stddev = linear(state,
+                                        latent_dim,
+                                        True,
+                                        bias_start=-5.0,
+                                        scope='log_stddev')
                     stddev = tf.exp(log_stddev)
                     batch_size = tf.shape(state[0])[0]
                     episilon = tf.random_normal([batch_size, latent_dim])
@@ -202,7 +198,18 @@ class VariationalAutoEncoder(object):
         self.updates = []
         self.gradient_norms = []
         if not forward_only:
-            opt = tf.train.AdamOptimizer(self.learning_rate)
+            if lr_decay > 0.0:
+                self.learning_rate = tf.train.exponential_decay(
+                    learning_rate,
+                    self.global_step,
+                    1000,
+                    lr_decay,
+                    staircase=True)
+                opt = tf.train.GradientDescentOptimizer(self.learning_rate)
+                print('  training with SGD optimizer')
+            else:
+                opt = tf.train.AdamOptimizer(self.learning_rate)
+                print('  training with Adam optimizer')
             params = tf.trainable_variables()
             for b in xrange(len(buckets)):
                 gradients = tf.gradients(self.losses[b], params)
@@ -259,8 +266,8 @@ class VariationalAutoEncoder(object):
             encoder_input = random.choice(data[bucket_id])
             if not self.forward_only:
                 decoder_input = (
-                    _unk_dropout(encoder_input, self.vocab.unk_index) +
-                    [self.vocab.end_index])
+                    _unk_dropout(encoder_input, self.vocab.unk_index,
+                                 self.keep_prob) + [self.vocab.end_index])
             else:
                 decoder_input = encoder_input + [self.vocab.end_index]
 
