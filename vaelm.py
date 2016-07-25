@@ -8,6 +8,7 @@ import os
 import time
 import sys
 import cPickle as pickle
+import logging
 
 import numpy as np
 import tensorflow as tf
@@ -15,6 +16,10 @@ import tensorflow as tf
 from vocab import Vocab
 from model import VariationalAutoEncoder
 from datautils import Metadata
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='[%(levelname)1.1s %(asctime)s %(module)s:%(lineno)d] %(message)s')
 
 flags = tf.flags
 
