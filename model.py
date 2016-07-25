@@ -67,7 +67,6 @@ class VariationalAutoEncoder(object):
         self.reg_scale = reg_scale
         self.forward_only = forward_only
         self.keep_prob = keep_prob
-        self.scale_latent_variable_variances = 0.01
 
         self.encoder_inputs = []
         self.decoder_inputs = []
@@ -158,19 +157,21 @@ class VariationalAutoEncoder(object):
                                   True,
                                   bias_start=0.0,
                                   scope='mean')
-                    var = tf.nn.softplus(linear(
-                        state,
-                        latent_dim,
-                        True,
-                        bias_start=0.0,
-                        scope='var')) * self.scale_latent_variable_variances
+                    var = tf.nn.softplus(linear(state,
+                                                latent_dim,
+                                                True,
+                                                bias_start=-5.0,
+                                                scope='var'))
+                    # replace zero to a tiny value
+                    var = tf.select(
+                        tf.not_equal(var, 0), var, tf.ones_like(var) * 1e-10)
 
                     batch_size = tf.shape(state[0])[0]
                     episilon = tf.random_normal([batch_size, latent_dim])
                     z = mean + tf.sqrt(var) * episilon
-
-                concat = linear(z, 2 * num_units, True, scope='state')
-                state = tf.nn.rnn_cell.LSTMStateTuple(*tf.split(1, 2, concat))
+                    concat = linear(z, 2 * num_units, True, scope='state')
+                    state = tf.nn.rnn_cell.LSTMStateTuple(*tf.split(1, 2,
+                                                                    concat))
 
                 if share_param:
                     tf.get_variable_scope().reuse_variables()
