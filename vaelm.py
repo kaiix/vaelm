@@ -128,12 +128,14 @@ def train():
 
     with tf.Session() as sess:
         with tf.variable_scope('vaelm', reuse=None):
-            model = create_model(sess, vocab, False)
+            mtrain = create_model(sess, vocab, False)
             if FLAGS.use_embedding:
                 print('Loading word embeddings')
                 emb_vecs = np.load(FLAGS.embedding)
                 print('Using pre-trained word embedding')
-                sess.run(model.embedding.assign(emb_vecs))
+                sess.run(mtrain.embedding.assign(emb_vecs))
+        with tf.variable_scope('vaelm', reuse=True):
+            mvalid = create_model(sess, vocab, True)
 
         step_time, loss = 0.0, 0.0
         current_step = 0
@@ -143,9 +145,9 @@ def train():
                              if train_buckets_scale[i] > random_number_01])
 
             start_time = time.time()
-            encoder_inputs, decoder_inputs, target_weights = model.get_batch(
+            encoder_inputs, decoder_inputs, target_weights = mtrain.get_batch(
                 train_set, bucket_id)
-            norm, step_loss, cost_detail = model.step(
+            norm, step_loss, cost_detail = mtrain.step(
                 sess, encoder_inputs, decoder_inputs, target_weights,
                 bucket_id, False)
             step_time += (time.time() - start_time) / FLAGS.print_every
@@ -153,21 +155,19 @@ def train():
             current_step += 1
 
             if current_step % FLAGS.print_every == 0:
-                dev_loss = sampled_loss(sess, model, dev_set)
-                ppl = np.exp(loss) if loss < 300 else float('inf')
-                if FLAGS.lr_decay > 0.0:
-                    lr = model.learning_rate.eval()
-                else:
-                    lr = model.learning_rate
-
-                global_step = model.global_step.eval()
+                dev_loss = sampled_loss(sess, mvalid, dev_set)
+                global_step = mtrain.global_step.eval()
                 metadata.add(global_step, 'dev_loss', dev_loss)
                 metadata.add(global_step, 'train_loss', loss)
                 metadata.add(global_step, 'reconstruction_loss',
                              cost_detail[0])
                 metadata.add(global_step, 'vae_loss', cost_detail[1])
                 metadata.add(global_step, 'annealing_weight', cost_detail[2])
-
+                if FLAGS.lr_decay > 0.0:
+                    lr = mtrain.learning_rate.eval()
+                else:
+                    lr = mtrain.learning_rate
+                ppl = np.exp(loss) if loss < 300 else float('inf')
                 print('cost detail: {:.2f} {:.2f} {:f}'.format(*cost_detail))
                 print('''global step {} step-time {:.2f} lr {:f} loss {:.2f}'''
                       ''' ppl {:.2f} norm {:.2f}'''
@@ -183,9 +183,9 @@ def train():
                     sys.stdout.flush()
                     checkpoint_path = os.path.join(FLAGS.checkpoint_dir,
                                                    "model.ckpt")
-                    model.saver.save(sess,
-                                     checkpoint_path,
-                                     global_step=model.global_step)
+                    mtrain.saver.save(sess,
+                                      checkpoint_path,
+                                      global_step=mtrain.global_step)
 
             if FLAGS.max_steps and current_step % FLAGS.max_steps == 0:
                 break
