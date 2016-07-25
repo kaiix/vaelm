@@ -240,6 +240,7 @@ class VariationalAutoEncoder(object):
         if not forward_only:
             output_feed = [
                 self.updates[bucket_id],
+                self.gradient_norms[bucket_id],
                 self.losses[bucket_id],
                 self.costs[bucket_id][0],
                 self.costs[bucket_id][1],
@@ -252,9 +253,10 @@ class VariationalAutoEncoder(object):
 
         outputs = session.run(output_feed, input_feed)
         if not forward_only:
-            return outputs[1], outputs[2:]  # loss, (xent, -kl, annealing)
+            return (outputs[1], outputs[2],
+                    outputs[3:])  # gradient norm, loss, (xent, -kl, annealing)
         else:
-            return outputs[0], outputs[1:]  # loss, logits
+            return None, outputs[0], outputs[1:]  # gradient norm, loss, logits
 
     def get_batch(self, data, bucket_id):
         seq_length = self.buckets[bucket_id]
@@ -314,8 +316,8 @@ class VariationalAutoEncoder(object):
         if verbose:
             print_data(encoder_inputs, decoder_inputs, target_weights,
                        self.vocab)
-        _, outputs = self.step(session, encoder_inputs, decoder_inputs,
-                               target_weights, bucket_id, True)
+        _, _, outputs = self.step(session, encoder_inputs, decoder_inputs,
+                                  target_weights, bucket_id, True)
         assert len(outputs) == self.buckets[bucket_id] + 1
         assert same_shape(outputs[0], (self.batch_size, self.vocab.size))
         decoder_outputs = []

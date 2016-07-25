@@ -140,9 +140,9 @@ def train():
             start_time = time.time()
             encoder_inputs, decoder_inputs, target_weights = model.get_batch(
                 train_set, bucket_id)
-            step_loss, cost_detail = model.step(sess, encoder_inputs,
-                                                decoder_inputs, target_weights,
-                                                bucket_id, False)
+            norm, step_loss, cost_detail = model.step(
+                sess, encoder_inputs, decoder_inputs, target_weights,
+                bucket_id, False)
             step_time += (time.time() - start_time) / FLAGS.print_every
             loss += step_loss / FLAGS.print_every
             current_step += 1
@@ -164,10 +164,9 @@ def train():
                 metadata.add(global_step, 'annealing_weight', cost_detail[2])
 
                 print('cost detail: {:.2f} {:.2f} {:f}'.format(*cost_detail))
-                print(
-                    '''global step {} step-time {:.2f} lr {:f} loss {:.2f}'''
-                    ''' ppl {:.2f}'''
-                    .format(global_step, step_time, lr, loss, ppl))
+                print('''global step {} step-time {:.2f} lr {:f} loss {:.2f}'''
+                      ''' ppl {:.2f} norm {:.2f}'''
+                      .format(global_step, step_time, lr, loss, ppl, norm))
                 step_time, loss = 0.0, 0.0
 
             if current_step % FLAGS.steps_per_checkpoint == 0:
@@ -199,8 +198,8 @@ def sampled_loss(session, model, dev_set):
 
         encoder_inputs, decoder_inputs, target_weights = model.get_batch(
             dev_set, bucket_id)
-        eval_loss, _ = model.step(session, encoder_inputs, decoder_inputs,
-                                  target_weights, bucket_id, True)
+        _, eval_loss, _ = model.step(session, encoder_inputs, decoder_inputs,
+                                     target_weights, bucket_id, True)
         print('  eval: bucket {} loss {:f}'.format(bucket_id, eval_loss))
         dev_loss += eval_loss
     dev_loss /= nbuckets
