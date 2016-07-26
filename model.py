@@ -63,7 +63,8 @@ def _unk_dropout(x, unk_index, keep_prob=1.0):
 class VariationalAutoEncoder(object):
     def __init__(self, learning_rate, batch_size, num_units, embedding_size,
                  max_gradient_norm, reg_scale, keep_prob, share_param,
-                 latent_dim, lr_decay, buckets, vocab, forward_only):
+                 latent_dim, lr_decay, annealing_pivot, buckets, vocab,
+                 forward_only):
         self.batch_size = batch_size
         self.buckets = buckets
         self.global_step = tf.Variable(0, trainable=False)
@@ -169,7 +170,7 @@ class VariationalAutoEncoder(object):
             kl_loss = tf.reduce_sum(kl_loss) / tf.cast(batch_size, tf.float32)
 
             annealing_weight = annealing_schedule(
-                tf.cast(self.global_step, tf.float32), 3e4)
+                tf.cast(self.global_step, tf.float32), annealing_pivot)
             # loss = -E[log(p(x))] + D[q(z)||p(z)]
             loss = reconstruction_loss + annealing_weight * kl_loss
             if reg_scale > 0.0:

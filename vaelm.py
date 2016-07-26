@@ -33,6 +33,7 @@ flags.DEFINE_string('embedding', './data/sick/sick.300d.npy',
 flags.DEFINE_integer('num_units', 300, 'Size of each LSTM layer.')
 flags.DEFINE_integer('embedding_size', 400, 'Size of word embedding.')
 flags.DEFINE_boolean('use_embedding', False, 'Use pre-trained embedding')
+flags.DEFINE_float('annealing_pivot', 3e4, 'Annealing pivot.')
 # parameters
 flags.DEFINE_float('learning_rate', 0.004, 'Learning rate.')
 flags.DEFINE_float('lr_decay', 0.0, 'Learning rate decay factor.')
@@ -95,7 +96,7 @@ def create_model(sess, vocab, forward_only=False):
         FLAGS.learning_rate, FLAGS.batch_size, FLAGS.num_units,
         FLAGS.embedding_size, FLAGS.max_gradient_norm, FLAGS.reg_scale,
         FLAGS.keep_prob, FLAGS.share_param, FLAGS.latent_dim, FLAGS.lr_decay,
-        _buckets, vocab, forward_only)
+        FLAGS.annealing_pivot, _buckets, vocab, forward_only)
     ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
     if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path):
         print('Reading model parameters from {}'.format(
