@@ -34,13 +34,13 @@ flags.DEFINE_integer('num_units', 300, 'Size of each LSTM layer.')
 flags.DEFINE_integer('embedding_size', 400, 'Size of word embedding.')
 flags.DEFINE_boolean('use_embedding', False, 'Use pre-trained embedding')
 # parameters
-flags.DEFINE_float('learning_rate', 0.001, 'Learning rate.')
+flags.DEFINE_float('learning_rate', 0.004, 'Learning rate.')
 flags.DEFINE_float('lr_decay', 0.0, 'Learning rate decay factor.')
 flags.DEFINE_float('max_gradient_norm', 5.0, 'Clip gradients to this norm.')
 flags.DEFINE_integer('batch_size', 50, 'Batch size to use during training.')
 flags.DEFINE_integer('max_steps', 5000,
                      'Number of (global) training steps to perform.')
-flags.DEFINE_float('reg_scale', 5e-5, 'Regularization scale.')
+flags.DEFINE_float('reg_scale', 0.0, 'Regularization scale.')  # 5e-5
 flags.DEFINE_float('keep_prob', 1.0,
                    'keep probability for dropout regularization.')
 flags.DEFINE_boolean('share_param', False,
