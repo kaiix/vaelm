@@ -155,8 +155,9 @@ def train():
             current_step += 1
 
             if current_step % FLAGS.print_every == 0:
-                dev_loss = sampled_loss(sess, mvalid, dev_set)
                 global_step = mtrain.global_step.eval()
+                mvalid.global_step.assign(global_step).eval()
+                dev_loss = sampled_loss(sess, mvalid, dev_set)
                 metadata.add(global_step, 'dev_loss', dev_loss)
                 metadata.add(global_step, 'train_loss', loss)
                 metadata.add(global_step, 'reconstruction_loss',
@@ -168,10 +169,10 @@ def train():
                 else:
                     lr = mtrain.learning_rate
                 ppl = np.exp(loss) if loss < 300 else float('inf')
-                print('cost detail: {:.2f} {:.2f} {:f}'.format(*cost_detail))
                 print('''global step {} step-time {:.2f} lr {:f} loss {:.2f}'''
                       ''' ppl {:.2f} norm {:.2f}'''
                       .format(global_step, step_time, lr, loss, ppl, norm))
+                print('cost detail: {:.2f} {:.2f} {:f}'.format(*cost_detail))
                 step_time, loss = 0.0, 0.0
 
             if current_step % FLAGS.steps_per_checkpoint == 0:
