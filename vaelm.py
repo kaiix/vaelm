@@ -253,7 +253,9 @@ def shell():
             model = create_model(sess, vocab, True)
             model.batch_size = 1
 
-    _start_shell(locals())
+        from tdb import tvars
+        print('[TDB] Load {}'.format(tvars.__name__))
+        _start_shell(locals())
 
 
 def main(_):
