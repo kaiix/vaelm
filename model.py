@@ -151,7 +151,11 @@ class VariationalAutoEncoder(object):
                 # disable when using latent variables
                 loop_function = None
 
-                with tf.variable_scope('latent'):
+                with tf.variable_scope(
+                        'latent',
+                        initializer=tf.truncated_normal_initializer(
+                            mean=0.0, stddev=0.01)):
+                    # TODO: tf.split(1, 2, linear(state, 2 * latent_dim))
                     mean = linear(state,
                                   latent_dim,
                                   True,
@@ -160,18 +164,17 @@ class VariationalAutoEncoder(object):
                     var = tf.nn.softplus(linear(state,
                                                 latent_dim,
                                                 True,
-                                                bias_start=-5.0,
+                                                bias_start=-1.0,
                                                 scope='var'))
-                    # replace zero to a tiny value
                     var = tf.select(
-                        tf.not_equal(var, 0), var, tf.ones_like(var) * 1e-10)
+                        tf.not_equal(var, 0), var, tf.ones_like(var))
 
                     batch_size = tf.shape(state[0])[0]
                     episilon = tf.random_normal([batch_size, latent_dim])
                     z = mean + tf.sqrt(var) * episilon
-                    concat = linear(z, 2 * num_units, True, scope='state')
-                    state = tf.nn.rnn_cell.LSTMStateTuple(*tf.split(1, 2,
-                                                                    concat))
+
+                concat = linear(z, 2 * num_units, True, scope='state')
+                state = tf.nn.rnn_cell.LSTMStateTuple(*tf.split(1, 2, concat))
 
                 if share_param:
                     tf.get_variable_scope().reuse_variables()
