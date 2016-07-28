@@ -223,6 +223,7 @@ def evaluate():
         with tf.variable_scope('vaelm', reuse=None):
             model = create_model(sess, vocab, True)
             model.batch_size = 1
+            model.keep_prob = 1.0
 
         while True:
             source = raw_input('> ')

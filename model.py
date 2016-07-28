@@ -105,9 +105,35 @@ class VariationalAutoEncoder(object):
         def annealing_schedule(t, pivot):
             return tf.nn.sigmoid((t - pivot) / pivot * 100)
 
+        def unk_dropout(x, keep_prob, unk_index):
+            with tf.op_scope([x], None, 'dropout'):
+                x = tf.convert_to_tensor(x, name='x')
+                if isinstance(keep_prob, float) and not 0 < keep_prob <= 1:
+                    raise ValueError(
+                        "keep_prob must be a scalar tensor or a float in the "
+                        "range (0, 1], got %g" % keep_prob)
+                keep_prob = tf.convert_to_tensor(keep_prob,
+                                                 dtype=tf.float32,
+                                                 name="keep_prob")
+
+                # uniform [keep_prob, 1.0 + keep_prob)
+                random_tensor = keep_prob
+                random_tensor += tf.random_uniform(tf.shape(x))
+                # 0. if [keep_prob, 1.0) and 1. if [1.0, 1.0 + keep_prob)
+                binary_tensor = tf.floor(random_tensor)
+                ret = tf.select(
+                    tf.greater(binary_tensor, 0), x, tf.fill(
+                        tf.shape(x), unk_index))
+                ret.set_shape(x.get_shape())
+                return ret
+
         def autoencoder(encoder_inputs, decoder_inputs, targets, weights):
             emb_encoder_inputs = [tf.nn.embedding_lookup(self.embedding, i)
                                   for i in encoder_inputs]
+            decoder_inputs = [
+                unk_dropout(i, self.keep_prob, self.vocab.unk_index)
+                for i in decoder_inputs
+            ]
             emb_decoder_inputs = [tf.nn.embedding_lookup(self.embedding, i)
                                   for i in decoder_inputs]
             assert len(emb_encoder_inputs) == len(emb_decoder_inputs) - 1
@@ -267,12 +293,7 @@ class VariationalAutoEncoder(object):
 
         for _ in xrange(self.batch_size):
             encoder_input = random.choice(data[bucket_id])
-            if not self.forward_only:
-                decoder_input = (
-                    _unk_dropout(encoder_input, self.vocab.unk_index,
-                                 self.keep_prob) + [self.vocab.end_index])
-            else:
-                decoder_input = encoder_input + [self.vocab.end_index]
+            decoder_input = encoder_input + [self.vocab.end_index]
 
             encoder_pad_size = encoder_size - len(encoder_input)
             encoder_inputs.append(encoder_input + [self.vocab.pad_index] *
