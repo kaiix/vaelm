@@ -72,7 +72,7 @@ def read_data(data_path, vocab, max_size=None):
     with tf.gfile.GFile(data_path) as source_file:
         counter = 0
         while not max_size or counter < max_size:
-            source = source_file.readline()
+            source = source_file.readline().strip()
             if not source:
                 break
             counter += 1
