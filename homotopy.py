@@ -290,8 +290,8 @@ class Homotopy(object):
                 eval_set, bucket_id)
             return encoder_inputs, decoder_inputs, bucket_id
 
-        lsent_ids = map(self.vocab.index, lsent.strip().split())
-        rsent_ids = map(self.vocab.index, rsent.strip().split())
+        lsent_ids = map(self.vocab.index, lsent.split())
+        rsent_ids = map(self.vocab.index, rsent.split())
         max_len = max(len(lsent_ids), len(rsent_ids))
         lsent_inputs = _inputs_for_bucket(lsent_ids, max_len)
         rsent_inputs = _inputs_for_bucket(rsent_ids, max_len)
