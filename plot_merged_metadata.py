@@ -66,9 +66,14 @@ def main(data_dir):
     plt.ylabel('KL term weight')
     plt.xlabel('step')
 
+    def average_sample(x, step):
+        return [np.mean(x[i:i + step]) for i in xrange(0, len(x), step)]
+
     ax2 = ax1.twinx()
-    vae_loss = data['vae_loss']
-    steps, losses = zip(*vae_loss)
+    kl_loss = data['kl_loss']
+    steps, losses = zip(*kl_loss)
+    steps = steps[::10]
+    losses = average_sample(losses, 10)
     ax2.plot(steps, losses, 'r-', label='KL term value', lw=2.0)
     plt.ylim(0, 8)
     plt.yticks(np.linspace(0, 8, 9))
@@ -78,4 +83,11 @@ def main(data_dir):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    args = sys.argv[1:]
+    if not args:
+        print("""usage:
+        {} log_dir
+        """.format(__file__))
+        sys.exit()
+
+    main(args[0])

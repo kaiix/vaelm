@@ -163,7 +163,7 @@ def train():
                 metadata.add(global_step, 'train_loss', loss)
                 metadata.add(global_step, 'reconstruction_loss',
                              cost_detail[0])
-                metadata.add(global_step, 'vae_loss', cost_detail[1])
+                metadata.add(global_step, 'kl_loss', cost_detail[1])
                 metadata.add(global_step, 'annealing_weight', cost_detail[2])
                 if FLAGS.lr_decay > 0.0:
                     lr = mtrain.learning_rate.eval()
