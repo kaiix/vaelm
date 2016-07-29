@@ -163,9 +163,10 @@ class VariationalAutoEncoder(object):
                     batch_size = tf.shape(state[0])[0]
                     episilon = tf.random_normal([batch_size, latent_dim])
                     z = mean + stddev * episilon
-                    concat = linear(z, 2 * num_units, True, scope='state')
-                    state = tf.nn.rnn_cell.LSTMStateTuple(*tf.split(1, 2,
-                                                                    concat))
+
+                concat = linear(z, 2 * num_units, True, scope='state')
+                state = tf.nn.rnn_cell.LSTMStateTuple(*tf.split(1, 2,
+                                                                concat))
 
                 if share_param:
                     tf.get_variable_scope().reuse_variables()
