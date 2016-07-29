@@ -53,13 +53,6 @@ def print_data(batch_encoder_inputs, batch_decoder_inputs,
             map(vocab.token, dec[1:]), w))))
 
 
-def _unk_dropout(x, unk_index, keep_prob=1.0):
-    x = np.array(x)
-    keep_indices = np.floor(np.random.uniform(size=len(x)) + keep_prob)
-    x[keep_indices == 0] = unk_index
-    return x.tolist()
-
-
 class VariationalAutoEncoder(object):
     def __init__(self, learning_rate, batch_size, num_units, embedding_size,
                  max_gradient_norm, reg_scale, keep_prob, share_param,
