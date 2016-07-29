@@ -106,6 +106,7 @@ class VariationalAutoEncoder(object):
             return tf.nn.sigmoid((t - pivot) / pivot * 100)
 
         def unk_dropout(x, keep_prob, unk_index):
+            # TODO: don't dropout <GO>
             with tf.op_scope([x], None, 'dropout'):
                 x = tf.convert_to_tensor(x, name='x')
                 if isinstance(keep_prob, float) and not 0 < keep_prob <= 1:
