@@ -165,8 +165,7 @@ class VariationalAutoEncoder(object):
                     z = mean + stddev * episilon
 
                 concat = linear(z, 2 * num_units, True, scope='state')
-                state = tf.nn.rnn_cell.LSTMStateTuple(*tf.split(1, 2,
-                                                                concat))
+                state = tf.nn.rnn_cell.LSTMStateTuple(*tf.split(1, 2, concat))
 
                 if share_param:
                     tf.get_variable_scope().reuse_variables()
