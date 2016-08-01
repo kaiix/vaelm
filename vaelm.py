@@ -230,10 +230,8 @@ def evaluate():
             if not source:
                 continue
             output = model.predict(sess, source, FLAGS.verbose)
-            for i, s in enumerate(output):
-                s = s.replace(vocab.unk_token, '?')
-                s = s.replace(vocab.end_token, '').strip()
-                print('[{}]: {}'.format(i + 1, s))
+            output = output.replace(vocab.unk_token, '?')
+            print('=> {}'.format(output))
 
 
 def _start_shell(local_ns=None):

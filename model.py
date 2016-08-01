@@ -332,14 +332,12 @@ class VariationalAutoEncoder(object):
         if verbose:
             print_data(encoder_inputs, decoder_inputs, target_weights,
                        self.vocab)
-        _, _, outputs = self.step(session, encoder_inputs, decoder_inputs,
-                                  target_weights, bucket_id, True)
-        assert len(outputs) == self.buckets[bucket_id] + 1
-        assert same_shape(outputs[0], (self.batch_size, self.vocab.size))
-        decoder_outputs = []
-        for b in xrange(self.batch_size):
-            decoder_outputs.append(' '.join([
-                self.vocab.token(np.argmax(outputs[l][b]))
-                for l in xrange(self.buckets[bucket_id] + 1)
-            ]))
-        return decoder_outputs
+        _, _, output_logits = self.step(session, encoder_inputs,
+                                        decoder_inputs, target_weights,
+                                        bucket_id, True)
+        assert len(output_logits) == self.buckets[bucket_id] + 1
+        assert same_shape(output_logits[0], (self.batch_size, self.vocab.size))
+        outputs = [int(np.argmax(logit, axis=1)) for logit in output_logits]
+        if self.vocab.end_index in outputs:
+            outputs = outputs[:outputs.index(self.vocab.end_index)]
+        return ' '.join(map(self.vocab.token, outputs))
