@@ -114,10 +114,10 @@ def train():
         FLAGS.max_train_data_size))
 
     dev_set = read_data(
-        os.path.join(FLAGS.data_dir, 'dev/', 'ptb.valid.txt'), vocab,
+        os.path.join(FLAGS.data_dir, 'dev/', 'valid.txt'), vocab,
         FLAGS.max_train_data_size)
     train_set = read_data(
-        os.path.join(FLAGS.data_dir, 'train/', 'ptb.train.txt'), vocab,
+        os.path.join(FLAGS.data_dir, 'train/', 'train.txt'), vocab,
         FLAGS.max_train_data_size)
 
     train_bucket_sizes = [len(train_set[b]) for b in xrange(len(_buckets))]
