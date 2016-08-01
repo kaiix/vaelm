@@ -292,7 +292,7 @@ class VariationalAutoEncoder(object):
             encoder_pad_size = encoder_size - len(encoder_input)
             encoder_inputs.append(encoder_input + [self.vocab.pad_index] *
                                   encoder_pad_size)
-            # autoencoder's decoder size == <GO> + encoder
+            # autoencoder's decoder size == <GO> + encoder + <EOS>
             decoder_pad_size = decoder_size - len(decoder_input) - 1
             decoder_inputs.append([self.vocab.start_index] + decoder_input +
                                   [self.vocab.pad_index] * decoder_pad_size)
