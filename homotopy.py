@@ -336,6 +336,8 @@ def evaluate():
                 num_sents = 1
             else:
                 num_sents = int(num_sents)
+            lsent = ' '.join(list(lsent.decode('utf8'))).encode('utf8')
+            rsent = ' '.join(list(rsent.decode('utf8'))).encode('utf8')
             print('>', lsent)
             for i in xrange(num_sents):
                 output = model.predict(sess, lsent, rsent)

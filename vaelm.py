@@ -59,6 +59,7 @@ flags.DEFINE_boolean('save', False, 'Save checkpoint files.')
 flags.DEFINE_boolean('eval', False, 'Run a evaluation process.')
 flags.DEFINE_boolean('verbose', False, 'Print input data detail.')
 flags.DEFINE_boolean('interactive', False, 'Run a interactive shell.')
+flags.DEFINE_boolean('word', False, 'Use word or char as input token.')
 
 FLAGS = flags.FLAGS
 
@@ -219,10 +220,16 @@ def evaluate():
             model = create_model(sess, vocab, True)
             model.batch_size = 1
 
+        from djx.nlp.segmenter import segment
+
         while True:
             source = raw_input('> ')
             if not source:
                 continue
+            if FLAGS.word:
+                source = ' '.join(segment(source)).strip()
+            else:
+                source = ' '.join(list(source.decode('utf8'))).encode('utf8')
             output = model.predict(sess, source, FLAGS.verbose)
             output = output.replace(vocab.unk_token, '?')
             print('=> {}'.format(output))
