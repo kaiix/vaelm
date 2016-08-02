@@ -13,7 +13,10 @@ import tensorflow as tf
 _START_VOCAB = ['<pad>', '<unk>', '<go>', '<eos>']
 
 
-def build_vocab(filepaths, dst_path, lowercase=True, max_vocab_size=40000):
+def _build_vocab_from_files(filepaths,
+                            dst_path,
+                            lowercase=True,
+                            max_vocab_size=40000):
     # TODO: unicode text
     vocab = []
     for filepath in filepaths:
@@ -28,9 +31,17 @@ def build_vocab(filepaths, dst_path, lowercase=True, max_vocab_size=40000):
             f.write(w + '\n')
 
 
+def build_vocab_with_dir(data_dir):
+    import glob
+    _build_vocab_from_files(
+        glob.glob(os.path.join(data_dir, '*/*.txt')),
+        os.path.join(data_dir, 'vocab-cased.txt'),
+        lowercase=False)
+
+
 def _read_words(filename):
-    with tf.gfile.GFile(filename, "r") as f:
-        return f.read().replace("\n", "<eos>").split()
+    with tf.gfile.GFile(filename, 'r') as f:
+        return f.read().replace('\n', '<eos>').split()
 
 
 def _build_vocab(filename):
@@ -58,7 +69,7 @@ def main(data_path):
 
     with open(vocab_path, 'w') as f:
         for w in vocab:
-            f.write(w+'\n')
+            f.write(w + '\n')
 
     return vocab
 
