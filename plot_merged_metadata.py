@@ -54,7 +54,7 @@ def main(data_dir):
     plt.plot(steps, losses, color='g', label='reconstruction loss')
     plt.xlabel('step')
     plt.ylabel('loss')
-    plt.legend(loc='upper right')
+    plt.legend(loc='upper left')
     plt.ylim((0, 10))
 
     # plot vae loss, and annealing weight
