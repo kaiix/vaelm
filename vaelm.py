@@ -227,7 +227,7 @@ def evaluate():
             if not source:
                 continue
             if FLAGS.word:
-                source = ' '.join(segment(source)).strip()
+                source = ' '.join(segment(source)).strip().encode('utf8')
             else:
                 source = ' '.join(list(source.decode('utf8'))).encode('utf8')
             output = model.predict(sess, source, FLAGS.verbose)

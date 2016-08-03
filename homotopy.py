@@ -33,6 +33,7 @@ flags.DEFINE_integer('num_units', 300, 'Size of each LSTM layer.')
 flags.DEFINE_integer('embedding_size', 400, 'Size of word embedding.')
 flags.DEFINE_boolean('use_embedding', False, 'Use pre-trained embedding')
 flags.DEFINE_float('annealing_pivot', 3e4, 'Annealing pivot.')
+flags.DEFINE_boolean('word', False, 'Use word or char as input token.')
 # parameters
 flags.DEFINE_float('learning_rate', 0.004, 'Learning rate.')
 flags.DEFINE_float('max_gradient_norm', 5.0, 'Clip gradients to this norm.')
@@ -324,6 +325,8 @@ def evaluate():
             model.batch_size = 1
             model.keep_prob = 1.0
 
+        from djx.nlp.segmenter import segment
+
         while True:
             lsent = raw_input('[1]> ')
             if not lsent:
@@ -336,8 +339,14 @@ def evaluate():
                 num_sents = 1
             else:
                 num_sents = int(num_sents)
-            lsent = ' '.join(list(lsent.decode('utf8'))).encode('utf8')
-            rsent = ' '.join(list(rsent.decode('utf8'))).encode('utf8')
+
+            if FLAGS.word:
+                lsent = ' '.join(segment(lsent)).strip().encode('utf8')
+                rsent = ' '.join(segment(rsent)).strip().encode('utf8')
+            else:
+                lsent = ' '.join(list(lsent.decode('utf8'))).encode('utf8')
+                rsent = ' '.join(list(rsent.decode('utf8'))).encode('utf8')
+
             print('>', lsent)
             for i in xrange(num_sents):
                 output = model.predict(sess, lsent, rsent)
