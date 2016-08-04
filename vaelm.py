@@ -164,11 +164,10 @@ def train():
                              cost_detail[0])
                 metadata.add(global_step, 'kl_loss', cost_detail[1])
                 metadata.add(global_step, 'annealing_weight', cost_detail[2])
-                lr = mtrain.learning_rate
                 ppl = np.exp(loss) if loss < 300 else float('inf')
-                print('''global step {} step-time {:.2f} lr {:f} loss {:.2f}'''
+                print('''global step {} step-time {:.2f} loss {:.2f}'''
                       ''' ppl {:.2f} norm {:.2f}'''
-                      .format(global_step, step_time, lr, loss, ppl, norm))
+                      .format(global_step, step_time, loss, ppl, norm))
                 print('cost detail: {:.2f} {:.2f} {:f}'.format(*cost_detail))
                 step_time, loss = 0.0, 0.0
 
