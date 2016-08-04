@@ -294,15 +294,13 @@ class Homotopy(object):
         lsent_inputs = _inputs_for_bucket(lsent_ids, max_len)
         rsent_inputs = _inputs_for_bucket(rsent_ids, max_len)
 
-        outputs = self.step(session, lsent_inputs, rsent_inputs)
-
-        decoder_outputs = []
-        for b in xrange(self.batch_size):
-            decoder_outputs.append(' '.join([
-                self.vocab.token(np.argmax(outputs[l][b]))
-                for l in xrange(self.buckets[lsent_inputs[2]] + 1)
-            ]))
-        return decoder_outputs
+        output_logits = self.step(session, lsent_inputs, rsent_inputs)
+        assert len(output_logits) == self.buckets[lsent_inputs[-1]] + 1
+        assert same_shape(output_logits[0], (self.batch_size, self.vocab.size))
+        outputs = [int(np.argmax(logit, axis=1)) for logit in output_logits]
+        if self.vocab.end_index in outputs:
+            outputs = outputs[:outputs.index(self.vocab.end_index)]
+        return ' '.join(map(self.vocab.token, outputs))
 
 
 def create_model(sess, vocab, forward_only=False):
@@ -329,13 +327,14 @@ def evaluate():
 
         while True:
             lsent = raw_input('[1]> ')
+            if not lsent:
+                continue
             rsent = raw_input('[2]> ')
-            if lsent and rsent:
-                output = model.predict(sess, lsent, rsent)
-                for i, s in enumerate(output):
-                    s = s.replace(vocab.unk_token, '?')
-                    s = s.replace(vocab.end_token, '').strip()
-                    print('[{}]: {}'.format(i + 1, s))
+            if not rsent:
+                continue
+            output = model.predict(sess, lsent, rsent)
+            output = output.replace(vocab.unk_token, '?')
+            print('=> {}'.format(output))
 
 
 def main(_):
