@@ -187,6 +187,8 @@ class VariationalAutoEncoder(object):
                                                               weights)
             kl_loss = -0.5 * (
                 1.0 + 2 * log_stddev - tf.square(mean) - tf.square(stddev))
+            # KL loss averaged by sequence length and batch size
+            kl_loss = tf.reduce_sum(kl_loss, 1) / (tf.add_n(weights) + 1e-12)
             kl_loss = tf.reduce_sum(kl_loss) / tf.cast(batch_size, tf.float32)
 
             annealing_weight = annealing_schedule(
