@@ -160,8 +160,8 @@ class VariationalAutoEncoder(object):
                                         scope='log_stddev')
                     stddev = tf.exp(log_stddev)
                     batch_size = tf.shape(state[0])[0]
-                    episilon = tf.random_normal([batch_size, latent_dim])
-                    z = mean + stddev * episilon
+                    epsilon = tf.random_normal([batch_size, latent_dim])
+                    z = mean + stddev * epsilon
 
                 concat = linear(z, 2 * num_units, True, scope='state')
                 state = tf.nn.rnn_cell.LSTMStateTuple(*tf.split(1, 2, concat))
@@ -220,7 +220,7 @@ class VariationalAutoEncoder(object):
         self.updates = []
         self.gradient_norms = []
         if not forward_only:
-            opt = tf.train.AdamOptimizer(self.learning_rate)
+            opt = tf.train.AdamOptimizer(self.learning_rate, epsilon=1e-6)
             params = tf.trainable_variables()
             for b in xrange(len(buckets)):
                 gradients = tf.gradients(self.losses[b], params)
