@@ -29,23 +29,23 @@ flags.DEFINE_integer('max_train_data_size', 0,
                      'Limit on the size of training data (0: no limit).')
 flags.DEFINE_string('embedding', './data/sick/sick.300d.npy',
                     'Pre-trained word embeddings')
-# model
-flags.DEFINE_integer('num_units', 300, 'Size of each LSTM layer.')
-flags.DEFINE_integer('embedding_size', 400, 'Size of word embedding.')
+# model parameters
+flags.DEFINE_integer('num_units', 200, 'Size of each LSTM layer.')
 flags.DEFINE_boolean('use_embedding', False, 'Use pre-trained embedding')
-flags.DEFINE_float('annealing_pivot', 3e4, 'Annealing pivot.')
-# parameters
-flags.DEFINE_float('learning_rate', 0.004, 'Learning rate.')
-flags.DEFINE_float('max_gradient_norm', 5.0, 'Clip gradients to this norm.')
-flags.DEFINE_integer('batch_size', 50, 'Batch size to use during training.')
-flags.DEFINE_integer('max_steps', 5000,
-                     'Number of (global) training steps to perform.')
-flags.DEFINE_float('reg_scale', 0.0, 'Regularization scale.')  # 5e-5
-flags.DEFINE_float('keep_prob', 1.0,
-                   'keep probability for dropout regularization.')
+flags.DEFINE_integer('embedding_size', 350, 'Size of word embedding.')
+flags.DEFINE_integer('latent_dim', 10, 'Size of latent variable.')
 flags.DEFINE_boolean('share_param', False,
                      'Share parameters between encoder and decoder.')
-flags.DEFINE_integer('latent_dim', 20, 'Size of latent variable.')
+# hyper-parameters
+flags.DEFINE_float('learning_rate', 3e-4, 'Learning rate.')
+flags.DEFINE_float('max_gradient_norm', 5.0, 'Clip gradients to this norm.')
+flags.DEFINE_float('keep_prob', 1.0,
+                   'keep probability for dropout regularization.')
+flags.DEFINE_integer('batch_size', 64, 'Batch size to use during training.')
+flags.DEFINE_float('reg_scale', 0.0, 'Regularization scale.')  # 5e-5
+flags.DEFINE_integer('annealing_pivot', 30000, 'Annealing pivot.')
+flags.DEFINE_integer('max_steps', 50000,
+                     'Number of (global) training steps to perform.')
 # logging
 flags.DEFINE_integer('steps_per_checkpoint', 1000,
                      'How many training steps to do per checkpoint.')
