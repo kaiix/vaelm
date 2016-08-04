@@ -36,7 +36,6 @@ flags.DEFINE_boolean('use_embedding', False, 'Use pre-trained embedding')
 flags.DEFINE_float('annealing_pivot', 3e4, 'Annealing pivot.')
 # parameters
 flags.DEFINE_float('learning_rate', 0.004, 'Learning rate.')
-flags.DEFINE_float('lr_decay', 0.0, 'Learning rate decay factor.')
 flags.DEFINE_float('max_gradient_norm', 5.0, 'Clip gradients to this norm.')
 flags.DEFINE_integer('batch_size', 50, 'Batch size to use during training.')
 flags.DEFINE_integer('max_steps', 5000,
@@ -95,7 +94,7 @@ def create_model(sess, vocab, forward_only=False):
     model = VariationalAutoEncoder(
         FLAGS.learning_rate, FLAGS.batch_size, FLAGS.num_units,
         FLAGS.embedding_size, FLAGS.max_gradient_norm, FLAGS.reg_scale,
-        FLAGS.keep_prob, FLAGS.share_param, FLAGS.latent_dim, FLAGS.lr_decay,
+        FLAGS.keep_prob, FLAGS.share_param, FLAGS.latent_dim,
         FLAGS.annealing_pivot, _buckets, vocab, forward_only)
     ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
     if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path):
@@ -165,10 +164,7 @@ def train():
                              cost_detail[0])
                 metadata.add(global_step, 'kl_loss', cost_detail[1])
                 metadata.add(global_step, 'annealing_weight', cost_detail[2])
-                if FLAGS.lr_decay > 0.0:
-                    lr = mtrain.learning_rate.eval()
-                else:
-                    lr = mtrain.learning_rate
+                lr = mtrain.learning_rate
                 ppl = np.exp(loss) if loss < 300 else float('inf')
                 print('''global step {} step-time {:.2f} lr {:f} loss {:.2f}'''
                       ''' ppl {:.2f} norm {:.2f}'''

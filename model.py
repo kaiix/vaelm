@@ -56,8 +56,7 @@ def print_data(batch_encoder_inputs, batch_decoder_inputs,
 class VariationalAutoEncoder(object):
     def __init__(self, learning_rate, batch_size, num_units, embedding_size,
                  max_gradient_norm, reg_scale, keep_prob, share_param,
-                 latent_dim, lr_decay, annealing_pivot, buckets, vocab,
-                 forward_only):
+                 latent_dim, annealing_pivot, buckets, vocab, forward_only):
         self.batch_size = batch_size
         self.buckets = buckets
         self.global_step = tf.Variable(0, trainable=False)
@@ -221,18 +220,7 @@ class VariationalAutoEncoder(object):
         self.updates = []
         self.gradient_norms = []
         if not forward_only:
-            if lr_decay > 0.0:
-                self.learning_rate = tf.train.exponential_decay(
-                    learning_rate,
-                    self.global_step,
-                    1000,
-                    lr_decay,
-                    staircase=True)
-                opt = tf.train.GradientDescentOptimizer(self.learning_rate)
-                print('  training with SGD optimizer')
-            else:
-                opt = tf.train.AdamOptimizer(self.learning_rate)
-                print('  training with Adam optimizer')
+            opt = tf.train.AdamOptimizer(self.learning_rate)
             params = tf.trainable_variables()
             for b in xrange(len(buckets)):
                 gradients = tf.gradients(self.losses[b], params)
