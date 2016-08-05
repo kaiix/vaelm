@@ -6,9 +6,8 @@ from __future__ import division
 
 import os
 import cPickle as pickle
-import logging
-
 import random
+import logging
 
 import numpy as np
 import tensorflow as tf
