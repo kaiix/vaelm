@@ -15,6 +15,7 @@ import tensorflow as tf
 from nnutils import same_shape
 from nnutils import linear
 from vocab import Vocab
+from helper import unicode_input
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -28,6 +29,7 @@ flags.DEFINE_integer('max_train_data_size', 0,
                      'Limit on the size of training data (0: no limit).')
 flags.DEFINE_string('embedding', './data/sick/sick.300d.npy',
                     'Pre-trained word embeddings')
+flags.DEFINE_string('lang', 'en', 'Default data language')
 # model
 flags.DEFINE_integer('num_units', 300, 'Size of each LSTM layer.')
 flags.DEFINE_integer('embedding_size', 400, 'Size of word embedding.')
@@ -328,10 +330,10 @@ def evaluate():
         from djx.nlp.segmenter import segment
 
         while True:
-            lsent = raw_input('[1]> ')
+            lsent = unicode_input('[1]> ')
             if not lsent:
                 continue
-            rsent = raw_input('[2]> ')
+            rsent = unicode_input('[2]> ')
             if not rsent:
                 continue
             num_sents = raw_input('NUM > ')
@@ -340,16 +342,19 @@ def evaluate():
             else:
                 num_sents = int(num_sents)
 
-            if FLAGS.word:
-                lsent = ' '.join(segment(lsent)).strip().encode('utf8')
-                rsent = ' '.join(segment(rsent)).strip().encode('utf8')
-            else:
-                lsent = ' '.join(list(lsent.decode('utf8'))).encode('utf8')
-                rsent = ' '.join(list(rsent.decode('utf8'))).encode('utf8')
+            if FLAGS.lang == 'zh':
+                if FLAGS.word:
+                    lsent = ' '.join(segment(lsent))
+                    rsent = ' '.join(segment(rsent))
+                else:
+                    lsent = ' '.join(list(lsent))
+                    rsent = ' '.join(list(rsent))
 
             print('>', lsent)
             for i in xrange(num_sents):
                 output = model.predict(sess, lsent, rsent)
+                if FLAGS.lang == 'zh':
+                    output = ''.join(output.split())
                 output = output.replace(vocab.unk_token, '?')
                 print('>', output)
                 lsent = output

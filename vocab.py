@@ -9,6 +9,8 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 from __future__ import print_function
 
+import io
+
 
 class Vocab(object):
     def __init__(self, path, max_vocab=40000, add_special=True):
@@ -28,7 +30,7 @@ class Vocab(object):
             self.eos_token, self.eos_index = None, None
             self.pad_token, self.pad_index = None, None
 
-        with open(path) as f:
+        with io.open(path, encoding='utf8') as f:
             while self.size < max_vocab:
                 line = f.readline()
                 if not line:

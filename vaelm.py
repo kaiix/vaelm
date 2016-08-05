@@ -8,6 +8,7 @@ import os
 import time
 import sys
 import cPickle as pickle
+import io
 import logging
 
 import numpy as np
@@ -16,6 +17,7 @@ import tensorflow as tf
 from vocab import Vocab
 from model import VariationalAutoEncoder
 from datautils import Metadata
+from helper import unicode_input
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -29,6 +31,7 @@ flags.DEFINE_integer('max_train_data_size', 0,
                      'Limit on the size of training data (0: no limit).')
 flags.DEFINE_string('embedding', './data/sick/sick.300d.npy',
                     'Pre-trained word embeddings')
+flags.DEFINE_string('lang', 'en', 'Default data language')
 # model parameters
 flags.DEFINE_integer('num_units', 200, 'Size of each LSTM layer.')
 flags.DEFINE_boolean('use_embedding', False, 'Use pre-trained embedding')
@@ -69,7 +72,7 @@ _buckets = [10, 15, 20, 25, 30, 40, 50]
 def read_data(data_path, vocab, max_size=None):
     print('load data from "{}"'.format(data_path))
     data_set = [[] for _ in _buckets]
-    with tf.gfile.GFile(data_path) as source_file:
+    with io.open(data_path, encoding='utf8') as source_file:
         counter = 0
         while not max_size or counter < max_size:
             source = source_file.readline()
@@ -227,14 +230,17 @@ def evaluate():
         from djx.nlp.segmenter import segment
 
         while True:
-            source = raw_input('> ')
+            source = unicode_input('> ')
             if not source:
                 continue
-            if FLAGS.word:
-                source = ' '.join(segment(source)).strip().encode('utf8')
-            else:
-                source = ' '.join(list(source.decode('utf8'))).encode('utf8')
+            if FLAGS.lang == 'zh':
+                if FLAGS.word:
+                    source = ' '.join(segment(source))
+                else:
+                    source = ' '.join(list(source))
             output = model.predict(sess, source, FLAGS.verbose)
+            if FLAGS.lang == 'zh':
+                output = ''.join(output.split())
             output = output.replace(vocab.unk_token, '?')
             print('=> {}'.format(output))
 
