@@ -79,7 +79,7 @@ class Vocab(object):
 
     def index(self, w):
         if w not in self._index:
-            if not self.unk_index:
+            if self.unk_index is None:
                 error(
                     'Token not in vocabulary and no UNK token defined: {}'.format(
                         w))
