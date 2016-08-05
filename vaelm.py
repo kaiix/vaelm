@@ -72,12 +72,15 @@ def read_data(data_path, vocab, max_size=None):
     with tf.gfile.GFile(data_path) as source_file:
         counter = 0
         while not max_size or counter < max_size:
-            source = source_file.readline().strip()
+            source = source_file.readline()
             if not source:
                 break
             counter += 1
 
             source_ids = map(vocab.index, source.split())
+            # line contains only whitespaces
+            if not source_ids:
+                continue
 
             for bucket_id, seq_length in enumerate(_buckets):
                 if len(source_ids) < seq_length:
@@ -87,6 +90,7 @@ def read_data(data_path, vocab, max_size=None):
     for i, b in enumerate(_buckets):
         print('bucket {} ({}) has {} sentences'.format(i, b, len(data_set[i])))
     print('total bucket size = {}'.format(sum(map(len, data_set))))
+    print('process {} lines'.format(counter))
 
     return data_set
 
