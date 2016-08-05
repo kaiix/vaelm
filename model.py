@@ -150,18 +150,27 @@ class VariationalAutoEncoder(object):
                 # disable when using latent variables
                 loop_function = None
 
-                with tf.variable_scope('latent'):
-                    mean = linear(state, latent_dim, True, scope='mean')
-                    # log(stddev) or log(var) is all ok for the output
-                    log_stddev = linear(state,
-                                        latent_dim,
-                                        True,
-                                        bias_start=-5.0,
-                                        scope='log_stddev')
-                    stddev = tf.exp(log_stddev)
+                with tf.variable_scope(
+                        'latent',
+                        initializer=tf.truncated_normal_initializer(
+                            mean=0.0, stddev=0.01)):
+                    # TODO: tf.split(1, 2, linear(state, 2 * latent_dim))
+                    mean = linear(state,
+                                  latent_dim,
+                                  True,
+                                  bias_start=0.0,
+                                  scope='mean')
+                    var = tf.nn.softplus(linear(state,
+                                                latent_dim,
+                                                True,
+                                                bias_start=-1.0,
+                                                scope='var'))
+                    var = tf.select(
+                        tf.not_equal(var, 0), var, tf.ones_like(var))
+
                     batch_size = tf.shape(state[0])[0]
                     epsilon = tf.random_normal([batch_size, latent_dim])
-                    z = mean + stddev * epsilon
+                    z = mean + tf.sqrt(var) * epsilon
 
                 concat = linear(z, 2 * num_units, True, scope='state')
                 state = tf.nn.rnn_cell.LSTMStateTuple(*tf.split(1, 2, concat))
@@ -184,8 +193,7 @@ class VariationalAutoEncoder(object):
             # cross entropy loss = -sum(y * log(p(y))
             reconstruction_loss = tf.nn.seq2seq.sequence_loss(logits, targets,
                                                               weights)
-            kl_loss = -0.5 * (
-                1.0 + 2 * log_stddev - tf.square(mean) - tf.square(stddev))
+            kl_loss = -0.5 * (1.0 + tf.log(var) - tf.square(mean) - var)
             # KL loss averaged by sequence length and batch size
             kl_loss = tf.reduce_sum(kl_loss, 1) / (tf.add_n(weights) + 1e-12)
             kl_loss = tf.reduce_sum(kl_loss) / tf.cast(batch_size, tf.float32)
