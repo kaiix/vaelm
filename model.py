@@ -150,10 +150,7 @@ class VariationalAutoEncoder(object):
                 # disable when using latent variables
                 loop_function = None
 
-                with tf.variable_scope(
-                        'latent',
-                        initializer=tf.truncated_normal_initializer(
-                            mean=0.0, stddev=0.01)):
+                with tf.variable_scope('latent'):
                     # TODO: tf.split(1, 2, linear(state, 2 * latent_dim))
                     mean = linear(state,
                                   latent_dim,
@@ -163,11 +160,8 @@ class VariationalAutoEncoder(object):
                     var = tf.nn.softplus(linear(state,
                                                 latent_dim,
                                                 True,
-                                                bias_start=-1.0,
-                                                scope='var'))
-                    var = tf.select(
-                        tf.not_equal(var, 0), var, tf.ones_like(var))
-
+                                                bias_start=-3.0,
+                                                scope='var')) + 1e-8
                     batch_size = tf.shape(state[0])[0]
                     epsilon = tf.random_normal([batch_size, latent_dim])
                     z = mean + tf.sqrt(var) * epsilon
