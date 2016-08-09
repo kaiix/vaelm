@@ -279,14 +279,14 @@ class VariationalAutoEncoder(object):
 
         for _ in xrange(self.batch_size):
             encoder_input = random.choice(data[bucket_id])
-            decoder_input = encoder_input + [self.vocab.end_index]
+            decoder_input = encoder_input + [self.vocab.eos_index]
 
             encoder_pad_size = encoder_size - len(encoder_input)
             encoder_inputs.append(encoder_input + [self.vocab.pad_index] *
                                   encoder_pad_size)
             # autoencoder's decoder size == <GO> + encoder + <EOS>
             decoder_pad_size = decoder_size - len(decoder_input) - 1
-            decoder_inputs.append([self.vocab.end_index] + decoder_input +
+            decoder_inputs.append([self.vocab.eos_index] + decoder_input +
                                   [self.vocab.pad_index] * decoder_pad_size)
         assert len(encoder_inputs[0]) == len(decoder_inputs[0]) - 1
 
@@ -330,6 +330,6 @@ class VariationalAutoEncoder(object):
         assert len(output_logits) == self.buckets[bucket_id] + 1
         assert same_shape(output_logits[0], (self.batch_size, self.vocab.size))
         outputs = [int(np.argmax(logit, axis=1)) for logit in output_logits]
-        if self.vocab.end_index in outputs:
-            outputs = outputs[:outputs.index(self.vocab.end_index)]
+        if self.vocab.eos_index in outputs:
+            outputs = outputs[:outputs.index(self.vocab.eos_index)]
         return ' '.join(map(self.vocab.token, outputs))

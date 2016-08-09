@@ -6,75 +6,62 @@ from __future__ import division
 
 import os
 import sys
-import collections
-
-import tensorflow as tf
-
-_START_VOCAB = ['<pad>', '<unk>', '<go>', '<eos>']
 
 
-def _build_vocab_from_files(filepaths,
-                            dst_path,
-                            lowercase=True,
-                            max_vocab_size=40000):
-    # TODO: unicode text
-    vocab = []
-    for filepath in filepaths:
-        with open(filepath) as f:
-            for line in f:
-                if lowercase:
-                    line = line.lower()
-                vocab.extend(line.split())
-    vocab = _START_VOCAB + sorted(set(vocab))
-    with open(dst_path, 'w') as f:
-        for w in vocab:
-            f.write(w + '\n')
+def words(line):
+    """Splits a line of text into tokens."""
+    return line.strip().split()
 
 
-def build_vocab_with_dir(data_dir):
-    import glob
-    _build_vocab_from_files(
-        glob.glob(os.path.join(data_dir, '*/*.txt')),
-        os.path.join(data_dir, 'vocab-cased.txt'),
-        lowercase=False)
+def create_vocabulary(lines, max_vocab, min_count=5):
+    """Reads text lines and generates a vocabulary."""
+    lines.seek(0, os.SEEK_END)
+    nbytes = lines.tell()
+    lines.seek(0, os.SEEK_SET)
+
+    vocab = {}
+    for lineno, line in enumerate(lines, start=1):
+        for word in words(line):
+            vocab.setdefault(word, 0)
+            vocab[word] += 1
+
+        if lineno % 100000 == 0:
+            pos = lines.tell()
+            sys.stdout.write('\rComputing vocabulary: %0.1f%% (%d/%d)...' %
+                             (100.0 * pos / nbytes, pos, nbytes))
+            sys.stdout.flush()
+
+    sys.stdout.write('\n')
+
+    vocab = [(tok, n) for tok, n in vocab.iteritems() if n >= min_count]
+    vocab.sort(key=lambda kv: (-kv[1], kv[0]))
+
+    num_words = min(len(vocab), max_vocab)
+
+    if not num_words:
+        raise Exception('empty vocabulary')
+
+    print('vocabulary contains %d tokens' % num_words)
+
+    vocab = vocab[:num_words]
+    return [tok for tok, n in vocab]
 
 
-def _read_words(filename):
-    with tf.gfile.GFile(filename, 'r') as f:
-        return f.read().replace('\n', '<eos>').split()
-
-
-def _build_vocab(filename):
-    data = _read_words(filename)
-
-    counter = collections.Counter(data)
-    count_pairs = sorted(counter.items(), key=lambda x: (-x[1], x[0]))
-
-    words, _ = list(zip(*count_pairs))
-    word_to_id = dict(zip(words, range(len(words))))
-
-    return words, word_to_id
-
-
-def main(data_path):
+def main(data_path, max_vocab=40000):
     assert os.path.exists(data_path)
     vocab_path = os.path.join(os.path.dirname(data_path), 'vocab-cased.txt')
 
-    words, word_to_id = _build_vocab(data_path)
-    extra_tokens = []
-    for tok in _START_VOCAB:
-        if tok not in word_to_id:
-            extra_tokens.append(tok)
-    vocab = extra_tokens + list(words)
+    with open(data_path) as fi:
+        vocab = create_vocabulary(fi, max_vocab)
 
-    with open(vocab_path, 'w') as f:
+    with open(vocab_path, 'w') as fo:
         for w in vocab:
-            f.write(w + '\n')
+            fo.write(w + '\n')
 
     return vocab
 
 
 if __name__ == '__main__':
-    print('Building vocab for dataset')
     vocab = main(sys.argv[1])
-    print('vocab size = {}'.format(len(vocab)))
+
+    print('done!')
