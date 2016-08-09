@@ -147,15 +147,14 @@ class Homotopy(object):
                 with tf.variable_scope('latent'):
                     mean = linear(state, latent_dim, True, scope='mean')
                     # log(stddev) or log(var) is all ok for the output
-                    log_stddev = linear(state,
-                                        latent_dim,
-                                        True,
-                                        bias_start=-5.0,
-                                        scope='log_stddev')
-                    stddev = tf.exp(log_stddev)
+                    var = tf.nn.softplus(linear(state,
+                                                latent_dim,
+                                                True,
+                                                bias_start=-3.0,
+                                                scope='var')) + 1e-8
                     batch_size = tf.shape(state[0])[0]
-                    episilon = tf.random_normal([batch_size, latent_dim])
-                    z = mean + stddev * episilon
+                    epsilon = tf.random_normal([batch_size, latent_dim])
+                    z = mean + tf.sqrt(var) * epsilon
             return z
 
         def homotopy_decoder(decoder_inputs, initial_state):
