@@ -250,7 +250,7 @@ class Homotopy(object):
                                   encoder_pad_size)
             # autoencoder's decoder size == <GO> + encoder
             decoder_pad_size = decoder_size - len(decoder_input) - 1
-            decoder_inputs.append([self.vocab.start_index] + decoder_input +
+            decoder_inputs.append([self.vocab.end_index] + decoder_input +
                                   [self.vocab.pad_index] * decoder_pad_size)
         assert len(encoder_inputs[0]) == len(decoder_inputs[0]) - 1
 
