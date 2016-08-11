@@ -47,15 +47,15 @@ def main(data_dir):
     # plot overall loss
     plt.subplot(2, 1, 1)
     data = merge_metadata(data_dir)
+    reconstruction_loss = data['reconstruction_loss']
+    steps, losses = zip(*reconstruction_loss)
+    plt.plot(steps, losses, color='g', label='reconstruction loss')
     train_loss = data['train_loss']
     steps, losses = zip(*train_loss)
     plt.plot(steps, losses, label='train loss')
     dev_loss = data['dev_loss']
     steps, losses = zip(*dev_loss)
     plt.plot(steps, losses, color='r', label='dev loss')
-    reconstruction_loss = data['reconstruction_loss']
-    steps, losses = zip(*reconstruction_loss)
-    plt.plot(steps, losses, color='g', label='reconstruction loss')
     plt.xlabel('step')
     plt.ylabel('loss')
     plt.legend(loc='upper left')
