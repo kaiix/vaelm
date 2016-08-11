@@ -140,16 +140,6 @@ class VariationalAutoEncoder(object):
                                      dtype=tf.float32,
                                      scope=encoder_scope)
 
-                proj_w = tf.get_variable('proj_w', [num_units, vocab_size])
-                proj_b = tf.get_variable('proj_b', [vocab_size])
-                if forward_only:
-                    loop_function = _extract_argmax_and_embed(self.embedding,
-                                                              (proj_w, proj_b))
-                else:
-                    loop_function = None
-                # disable when using latent variables
-                loop_function = None
-
                 with tf.variable_scope('latent'):
                     # TODO: tf.split(1, 2, linear(state, 2 * latent_dim))
                     mean = linear(state,
@@ -169,6 +159,13 @@ class VariationalAutoEncoder(object):
                 concat = linear(z, 2 * num_units, True, scope='state')
                 state = tf.nn.rnn_cell.LSTMStateTuple(*tf.split(1, 2, concat))
 
+                proj_w = tf.get_variable('proj_w', [num_units, vocab_size])
+                proj_b = tf.get_variable('proj_b', [vocab_size])
+                if forward_only:
+                    loop_function = _extract_argmax_and_embed(self.embedding,
+                                                              (proj_w, proj_b))
+                else:
+                    loop_function = None
                 if share_param:
                     tf.get_variable_scope().reuse_variables()
                 decoder_scope = 'tied_rnn' if share_param else 'rnn_decoder'

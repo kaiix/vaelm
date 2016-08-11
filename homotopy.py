@@ -164,8 +164,8 @@ class Homotopy(object):
             with tf.variable_scope('autoencoder', regularizer=l2_reg):
                 proj_w = tf.get_variable('proj_w', [num_units, vocab_size])
                 proj_b = tf.get_variable('proj_b', [vocab_size])
-                # disable when using latent variables
-                loop_function = None
+                loop_function = _extract_argmax_and_embed(self.embedding,
+                                                          (proj_w, proj_b))
                 if share_param:
                     tf.get_variable_scope().reuse_variables()
                 decoder_scope = 'tied_rnn' if share_param else 'rnn_decoder'
