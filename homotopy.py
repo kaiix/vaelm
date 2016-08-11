@@ -331,9 +331,18 @@ def evaluate():
             rsent = raw_input('[2]> ')
             if not rsent:
                 continue
-            output = model.predict(sess, lsent, rsent)
-            output = output.replace(vocab.unk_token, '?')
-            print('=> {}'.format(output))
+            num_sents = raw_input('NUM > ')
+            if not num_sents:
+                num_sents = 1
+            else:
+                num_sents = int(num_sents)
+            print('>', lsent)
+            for i in xrange(num_sents):
+                output = model.predict(sess, lsent, rsent)
+                output = output.replace(vocab.unk_token, '?')
+                print('>', output)
+                lsent = output
+            print('>', rsent)
 
 
 def main(_):
