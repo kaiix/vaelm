@@ -29,7 +29,7 @@ def _extract_argmax_and_embed(embedding,
     return loop_function
 
 
-def _revert_inputs(batch_inputs, vocab):
+def _revert_inputs(batch_inputs):
     batch_size = batch_inputs[0].shape[0]
     inputs = [[] for _ in xrange(batch_size)]
     for length_idx in xrange(len(batch_inputs)):
@@ -42,9 +42,9 @@ def print_data(batch_encoder_inputs, batch_decoder_inputs,
                batch_target_weights, vocab):
     assert len(batch_encoder_inputs) == len(batch_decoder_inputs) - 1
     assert len(batch_target_weights) == len(batch_decoder_inputs)
-    encoder_inputs = _revert_inputs(batch_encoder_inputs, vocab)
-    decoder_inputs = _revert_inputs(batch_decoder_inputs, vocab)
-    target_weights = _revert_inputs(batch_target_weights, vocab)
+    encoder_inputs = _revert_inputs(batch_encoder_inputs)
+    decoder_inputs = _revert_inputs(batch_decoder_inputs)
+    target_weights = _revert_inputs(batch_target_weights)
 
     for enc, dec, w in zip(encoder_inputs, decoder_inputs, target_weights):
         print('encoder input > "{}"'.format(map(vocab.token, enc)))
