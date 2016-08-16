@@ -276,12 +276,6 @@ def main(_):
 
     if FLAGS.save and not tf.gfile.Exists(FLAGS.checkpoint_dir):
         tf.gfile.MakeDirs(FLAGS.checkpoint_dir)
-    if FLAGS.save:
-        config_file = os.path.join(FLAGS.checkpoint_dir, 'config.pkl')
-        if tf.gfile.Exists(config_file):
-            restore_config(config_file)
-        else:
-            save_config(config_file)
 
     header('Configuration')
     print_flags()
