@@ -98,12 +98,15 @@ def read_data(data_path, vocab, max_size=None):
     return data_set
 
 
-def create_model(sess, vocab, forward_only=False):
+def create_model(sess, vocab, forward_only=False, reuse=False):
     model = VariationalAutoEncoder(
         FLAGS.learning_rate, FLAGS.batch_size, FLAGS.num_units,
         FLAGS.embedding_size, FLAGS.max_gradient_norm, FLAGS.reg_scale,
         FLAGS.keep_prob, FLAGS.share_param, FLAGS.latent_dim,
         FLAGS.annealing_pivot, _buckets, vocab, forward_only)
+
+    if reuse:
+        return model
     ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
     if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path):
         print('Reading model parameters from {}'.format(
@@ -143,7 +146,7 @@ def train():
                 print('Using pre-trained word embedding')
                 sess.run(mtrain.embedding.assign(emb_vecs))
         with tf.variable_scope('vaelm', reuse=True):
-            mvalid = create_model(sess, vocab, True)
+            mvalid = create_model(sess, vocab, True, True)
 
         step_time, loss = 0.0, 0.0
         current_step = 0
