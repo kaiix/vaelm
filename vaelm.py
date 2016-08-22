@@ -10,6 +10,7 @@ import sys
 import cPickle as pickle
 import io
 import logging
+import functools
 
 import numpy as np
 import tensorflow as tf
@@ -69,8 +70,28 @@ FLAGS = flags.FLAGS
 _buckets = [10, 15, 20, 25, 30, 40, 50]
 
 
+def serialize(func):
+    @functools.wraps(func)
+    def wrapper(data_path, *a, **kw):
+        path_root, _ = os.path.splitext(data_path)
+        pkl_file = path_root + '.pkl'
+        if os.path.exists(pkl_file):
+            with open(pkl_file) as pkl:
+                print('Reading from {}'.format(pkl_file))
+                return pickle.load(pkl)
+        else:
+            data_set = func(data_path, *a, **kw)
+            with open(pkl_file, 'wb') as pkl:
+                print('Cache dataset to {}'.format(pkl_file))
+                pickle.dump(data_set, pkl, -1)
+            return data_set
+
+    return wrapper
+
+
+@serialize
 def read_data(data_path, vocab, max_size=None):
-    print('load data from "{}"'.format(data_path))
+    print('Load data from "{}"'.format(data_path))
     data_set = [[] for _ in _buckets]
     with io.open(data_path, encoding='utf8') as source_file:
         counter = 0
@@ -94,7 +115,6 @@ def read_data(data_path, vocab, max_size=None):
         print('bucket {} ({}) has {} sentences'.format(i, b, len(data_set[i])))
     print('total bucket size = {}'.format(sum(map(len, data_set))))
     print('process {} lines'.format(counter))
-
     return data_set
 
 
