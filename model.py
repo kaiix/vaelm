@@ -55,8 +55,8 @@ def print_data(batch_encoder_inputs, batch_decoder_inputs,
 
 class VariationalAutoEncoder(object):
     def __init__(self, learning_rate, batch_size, num_units, embedding_size,
-                 max_gradient_norm, reg_scale, keep_prob, share_param,
-                 latent_dim, annealing_pivot, buckets, vocab, forward_only):
+                 max_gradient_norm, reg_scale, keep_prob, latent_dim,
+                 annealing_pivot, buckets, vocab, forward_only):
         self.batch_size = batch_size
         self.buckets = buckets
         self.global_step = tf.Variable(0, trainable=False)
@@ -134,11 +134,10 @@ class VariationalAutoEncoder(object):
 
             l2_reg = tf.contrib.layers.l2_regularizer(self.reg_scale)
             with tf.variable_scope('autoencoder', regularizer=l2_reg):
-                encoder_scope = 'tied_rnn' if share_param else 'rnn_encoder'
                 _, state = tf.nn.rnn(lstm_cell,
                                      emb_encoder_inputs,
                                      dtype=tf.float32,
-                                     scope=encoder_scope)
+                                     scope='rnn_encoder')
 
                 with tf.variable_scope('latent'):
                     # TODO: tf.split(1, 2, linear(state, 2 * latent_dim))
@@ -166,15 +165,12 @@ class VariationalAutoEncoder(object):
                                                               (proj_w, proj_b))
                 else:
                     loop_function = None
-                if share_param:
-                    tf.get_variable_scope().reuse_variables()
-                decoder_scope = 'tied_rnn' if share_param else 'rnn_decoder'
                 outputs, _ = tf.nn.seq2seq.rnn_decoder(
                     emb_decoder_inputs,
                     state,
                     lstm_cell,
                     loop_function=loop_function,
-                    scope=decoder_scope)
+                    scope='rnn_decoder')
                 assert same_shape(outputs[0], (None, num_units))
 
                 logits = [tf.nn.xw_plus_b(output, proj_w, proj_b)

@@ -38,8 +38,6 @@ flags.DEFINE_integer('num_units', 200, 'Size of each LSTM layer.')
 flags.DEFINE_boolean('use_embedding', False, 'Use pre-trained embedding')
 flags.DEFINE_integer('embedding_size', 350, 'Size of word embedding.')
 flags.DEFINE_integer('latent_dim', 10, 'Size of latent variable.')
-flags.DEFINE_boolean('share_param', False,
-                     'Share parameters between encoder and decoder.')
 # hyper-parameters
 flags.DEFINE_float('learning_rate', 3e-4, 'Learning rate.')
 flags.DEFINE_float('max_gradient_norm', 5.0, 'Clip gradients to this norm.')
@@ -122,8 +120,8 @@ def create_model(sess, vocab, forward_only=False, reuse=False):
     model = VariationalAutoEncoder(
         FLAGS.learning_rate, FLAGS.batch_size, FLAGS.num_units,
         FLAGS.embedding_size, FLAGS.max_gradient_norm, FLAGS.reg_scale,
-        FLAGS.keep_prob, FLAGS.share_param, FLAGS.latent_dim,
-        FLAGS.annealing_pivot, _buckets, vocab, forward_only)
+        FLAGS.keep_prob, FLAGS.latent_dim, FLAGS.annealing_pivot, _buckets,
+        vocab, forward_only)
 
     if reuse:
         return model
@@ -352,7 +350,6 @@ _SAVE_FLAGS = [
     'batch_size',
     'reg_scale',
     'keep_prob',
-    'share_param',
     'log_dir',
 ]
 
