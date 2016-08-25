@@ -19,16 +19,16 @@ class Vocab(object):
         self._tokens = {}
 
         if add_special:
+            self.pad_token = '<pad>'
+            self.pad_index = self.add(self.pad_token)
             self.unk_token = '<unk>'
             self.unk_index = self.add(self.unk_token)
             self.eos_token = '<eos>'
             self.eos_index = self.add(self.eos_token)
-            self.pad_token = '<pad>'
-            self.pad_index = self.add(self.pad_token)
         else:
+            self.pad_token, self.pad_index = None, None
             self.unk_token, self.unk_index = None, None
             self.eos_token, self.eos_index = None, None
-            self.pad_token, self.pad_index = None, None
 
         with io.open(path, encoding='utf8') as f:
             while self.size < max_vocab:
