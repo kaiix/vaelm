@@ -9,7 +9,6 @@ import time
 import sys
 import cPickle as pickle
 import io
-import logging
 import functools
 
 import numpy as np
@@ -19,10 +18,6 @@ from vocab import Vocab
 from model import VariationalAutoEncoder
 from datautils import Metadata
 from helper import unicode_input
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='[%(levelname)1.1s %(asctime)s %(module)s:%(lineno)d] %(message)s')
 
 flags = tf.flags
 
@@ -65,6 +60,8 @@ flags.DEFINE_boolean('interactive', False, 'Run a interactive shell.')
 flags.DEFINE_boolean('word', False, 'Use word or char as input token.')
 
 FLAGS = flags.FLAGS
+
+tf.logging.set_verbosity(tf.logging.INFO)
 
 _buckets = [10, 15, 20, 25, 30, 40, 50]
 

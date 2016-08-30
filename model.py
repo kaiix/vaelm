@@ -161,8 +161,9 @@ class VariationalAutoEncoder(object):
                 proj_w = tf.get_variable('proj_w', [num_units, vocab_size])
                 proj_b = tf.get_variable('proj_b', [vocab_size])
                 if forward_only:
-                    loop_function = _extract_argmax_and_embed(self.embedding,
-                                                              (proj_w, proj_b))
+                    loop_function = _extract_argmax_and_embed(
+                        self.embedding, (proj_w, proj_b),
+                        update_embedding=False)
                 else:
                     loop_function = None
                 outputs, _ = tf.nn.seq2seq.rnn_decoder(
