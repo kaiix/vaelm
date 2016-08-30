@@ -38,6 +38,7 @@ flags.DEFINE_integer('num_units', 200, 'Size of each LSTM layer.')
 flags.DEFINE_boolean('use_embedding', False, 'Use pre-trained embedding')
 flags.DEFINE_integer('embedding_size', 350, 'Size of word embedding.')
 flags.DEFINE_integer('latent_dim', 10, 'Size of latent variable.')
+flags.DEFINE_integer('vocab_size', 40000, 'Size of vocabulary.')
 # hyper-parameters
 flags.DEFINE_float('learning_rate', 3e-4, 'Learning rate.')
 flags.DEFINE_float('max_gradient_norm', 5.0, 'Clip gradients to this norm.')
@@ -137,7 +138,9 @@ def create_model(sess, vocab, forward_only=False, reuse=False):
 
 
 def train():
-    vocab = Vocab(os.path.join(FLAGS.data_dir, 'vocab-cased.txt'))
+    vocab = Vocab(
+        os.path.join(FLAGS.data_dir, 'vocab-cased.txt'),
+        max_vocab=FLAGS.vocab_size)
     print('Reading development and training data (limit: {}).'.format(
         FLAGS.max_train_data_size))
 
